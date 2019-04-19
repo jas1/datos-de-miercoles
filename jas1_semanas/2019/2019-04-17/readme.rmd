@@ -1,0 +1,310 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-04-17 Juego de tronos"
+author: "julio"
+date: "10-03-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-04-17 Juego de tronos
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+- Hacer algo con grafos para GOT.
+
+- Hacer algo con sankey
+
+## Detalles:
+
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(dplyr)
+library(tidyr)
+
+library(skimr)
+library(readr) 
+library(ggplot2)
+library(forcats)
+
+library(stringr)
+library(purrr)
+
+library(ggalluvial)# install.packages("ggalluvial")
+library(ggforce)
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+tiempo_pantalla <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-04-17/tiempo_pantalla.csv")
+cambio_lealtades <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-04-17/cambio_lealtades.csv")
+personajes_libros <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-04-17/personajes_libro.csv")
+```
+
+
+## limpiar
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+personajes_libros_procesado <- personajes_libros %>% 
+    gather(key="libro",value="participo",juego_de_tronos,choque_de_reyes,tormenta_de_espadas,festin_de_cuervos,danza_de_dragones)
+# 
+# personajes_libros_procesado %>% 
+#     filter(participo==1) %>% 
+#     count(nombre,sort=TRUE)
+
+
+
+cambio_lealtades_procesado <- cambio_lealtades %>% 
+    gather(key="temporada",value="estado",
+           lealtad_inicial,fin_t1,fin_t2,fin_t3,fin_t4,fin_t5,fin_t6,fin_t7)
+
+libros_pj <- personajes_libros_procesado %>% select(libro,nombre)
+tv_pj<- cambio_lealtades_procesado %>% 
+    filter(estado!="Muerta/o") %>% 
+    select(temporada,nombre)
+
+# cambio_lealtades_procesado %>% count(estado)
+# cambio_lealtades_procesado %>% count(estado)
+
+# libros_pj%>%filter(str_detect(nombre,"Stark"))
+# cambio_lealtades_procesado %>% filter(nombre=="Lyanna Stark")
+# cambio_lealtades %>% filter(nombre=="Lyanna Stark")
+# sankey >>
+  # libro >> pj >> pantalla  
+joined_pj <- libros_pj %>% 
+    left_join(tv_pj) 
+
+top_pj <- joined_pj %>% count(nombre,sort = TRUE) %>% filter(n>30)
+
+
+
+plot_out_compara<-ggplot(joined_pj,
+       aes(x = temporada, 
+           stratum = nombre, alluvium = libro,
+           fill = nombre)) +
+   scale_fill_brewer(type = "qual", palette = "Paired") +
+  ggalluvial::geom_flow() +
+  ggalluvial::geom_stratum() +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90),
+               legend.position = "none") +
+  labs(title="Movimientos en lealtades",
+       subtitle = "Se consideran las 10 mayores facciones",
+       y="Frecuencia",
+       x="Temporada",
+       fill="Lealtad")
+
+```
+
+## entender
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+libros_pj <- personajes_libros_procesado %>% 
+    select(libro,nombre)
+tv_pj<- cambio_lealtades_procesado %>% 
+    filter(estado!="Muerta/o") %>% 
+    select(temporada,nombre)
+
+joined_pj <- libros_pj %>% left_join(tv_pj)
+libro_temporada <- joined_pj %>%  
+    count(libro,temporada,name = "personajes") 
+
+
+grafo_datos <- igraph::graph_from_data_frame(libro_temporada)
+igraph::E(grafo_datos)$weight * 0.01
+igraph::E(grafo_datos)$width  <- igraph::E(grafo_datos)$weight* 0.1
+igraph::V(grafo_datos)$type <- igraph::V(grafo_datos)$name %in% c("lealtad_inicial",paste0("fin_t",1:7))
+
+igraph::is.bipartite(grafo_datos)
+
+visNetwork::visIgraph(grafo_datos) %>% 
+     visNetwork::visIgraphLayout(layout = "layout_as_bipartite")
+
+    # visNetwork::visIgraphLayout(grafo_datos,layout = "layout_as_bipartite")
+    
+
+heat_map1 <- 
+libro_temporada %>% 
+    mutate(temporada=fct_relevel(temporada,"lealtad_inicial")) %>% 
+    mutate(libro=fct_relevel(libro,
+                                 "juego_de_tronos",
+                                 "choque_de_reyes",
+                                 "tormenta_de_espadas",
+                                 "festin_de_cuervos",
+                                 "danza_de_dragones")) %>% 
+    ggplot(aes(x=temporada,y=libro,fill=personajes))+
+    geom_tile()+
+    scale_fill_viridis_c() +
+    theme_minimal()+
+    theme(axis.text.x = element_text(angle = 45,vjust = -0.0001))+
+    labs(title = "Relacion de personajes Libro / Serie",
+         subtitle = "",
+         caption="#datosdemiercoles 2019-04-17",
+         x="",y="")
+
+ggsave(plot=heat_map1,file="20190417_heatmap.png")
+
+
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+
+# libros_temporada_para_alluvial%>% 
+#     ggplot(aes(x, id = id, 
+#                       split = y, 
+#                       value = n)) + 
+#   geom_parallel_sets(aes(fill = lealtad), alpha = 0.5, axis.width = 0.1) +
+#   geom_parallel_sets_axes(axis.width = 0.1) +
+#   geom_parallel_sets_labels(colour = 'white') +
+#   # theme_fivethirtyeight() +
+#   theme(axis.text.y = element_blank()) +
+#   labs(title = "Genero y Status de personajes de GoT", 
+#        subtitle = "#DatosDeMiércoles (por @TuQmano)", 
+#        caption = "Datos de @R4DS_es")
+# 
+# 
+# 
+# ggplot(conjuntos, aes(x, id = id, 
+#                       split = y, 
+#                       value = value)) + 
+#   geom_parallel_sets(aes(fill = Lealtad), alpha = 0.5, axis.width = 0.1) +
+#   geom_parallel_sets_axes(axis.width = 0.1) +
+#   geom_parallel_sets_labels(colour = 'white') +
+#   # theme_fivethirtyeight() +
+#   theme(axis.text.y = element_blank()) +
+#   labs(title = "Genero y Status de personajes de GoT", 
+#        subtitle = "#DatosDeMiércoles (por @TuQmano)", 
+#        caption = "Datos de @R4DS_es")
+# conjuntos <- personajes_libros %>% 
+#   select(2:4) %>%  #Nos quedamos con las primeras 4 columnas (nombre, lealtad, genero y noble (dummy))
+#   group_by(lealtad, genero, noble) %>%  
+#   mutate(value = n()) %>% 
+#   ungroup() %>% 
+#   mutate(noble = ifelse(noble == 1, "Noble", "Plebeyo"), 
+#          genero = ifelse(genero == "masculino", "H", "M")) %>% 
+#   rename('Genero' = 'genero', 
+#          'Status' = 'noble', 
+#          'Lealtad' = 'lealtad') %>% 
+#   gather_set_data(2:3) %>% 
+#   print()
+# 
+# plot_out<-ggplot(libros_temporada_para_alluvial,
+#        aes(x = x, stratum = y, alluvium = n,
+#            fill = lealtad)) +
+#    scale_fill_brewer(type = "qual", palette = "Paired") +
+#   ggalluvial::geom_flow() +
+#   ggalluvial::geom_stratum() +
+#   theme_minimal()+
+#   theme(axis.text.x = element_text(angle = 90),
+#         legend.position = "right",# probe los otros, pero hay nombres muy largos , ni reduciendlo letra
+#         legend.text = element_text(size=8)) + 
+#         
+#   labs(title="Movimientos en lealtades",
+#        subtitle = "Se consideran las 10 mayores facciones",
+#        y="Frecuencia",
+#        x="",
+#        fill="")
+
+
+```
+
+# replicando alluvial de luizuniga_r
+
+https://twitter.com/luizuniga_r/status/1118605936757702657
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+lealtad_flujo <- cambio_lealtades %>% 
+  select(-episodios,-origen) %>% 
+  tidyr::gather(temporada,lealtad,-nombre) %>% 
+    distinct() %>% 
+  filter(!stringr::str_detect(nombre,"uncredited")) %>% 
+  filter(lealtad!="Muerta/o")
+
+mayores_lealtad <- lealtad_flujo %>% 
+  # group_by(lealtad) %>%
+  # filter(temporada=="fin_t7" | temporada=="fin_t6" | temporada=="fin_t5" | temporada=="fin_t4") %>% 
+  # summarise(count=n()) %>% 
+  # arrange(desc(count)) %>% 
+  filter(temporada %in% c("fin_t7","fin_t6","fin_t5","fin_t4") ) %>% 
+  count(lealtad,sort=TRUE) %>% 
+  slice(1:10) %>% 
+  pull(lealtad)
+# 
+# lealtad_flujo <-  lealtad_flujo %>% 
+#   filter(lealtad %in% mayores_lealtad)
+
+
+lealtad_flujo_julio <- lealtad_flujo %>% 
+    filter(lealtad %in% mayores_lealtad) %>% 
+    mutate(temporada=case_when(temporada=="lealtad_inicial" ~ "ini.temp.1",
+                               temporada=="fin_t1"~ "fin temp.1",
+                               temporada=="fin_t2"~ "fin temp.2",
+                               temporada=="fin_t3"~ "fin temp.3",
+                               temporada=="fin_t4"~ "fin temp.4",
+                               temporada=="fin_t5"~ "fin temp.5",
+                               temporada=="fin_t6"~ "fin temp.6",
+                               temporada=="fin_t7"~ "fin temp.7"
+        
+    )) %>% 
+    mutate(lealtad=as.factor(lealtad)) %>% 
+    mutate(temporada=as.factor(temporada)) %>% 
+    mutate(temporada=fct_relevel(temporada,"ini.temp.1"))
+    # fct_relevel(f, "a")
+
+# lealtad_flujo$lealtad <- factor(lealtad_flujo$lealtad,levels=unique(lealtad_flujo$lealtad),ordered = TRUE)
+# lealtad_flujo$temporada <- factor(lealtad_flujo$temporada,levels=unique(lealtad_flujo$temporada),ordered = TRUE)
+# windowsFonts(Roboto = windowsFont("Roboto Medium"))
+
+# relevel(x = c("lealtad_inicial",paste0("fin_t",1:7)))
+# levels(lealtad_flujo_julio$temporada)
+# 
+# "fin_t1"          "fin_t2"          "fin_t3"          "fin_t4"          "fin_t5"         
+# "fin_t6"          "fin_t7"          "lealtad_inicial"
+
+plot_out<-ggplot(lealtad_flujo_julio,
+       aes(x = temporada, stratum = lealtad, alluvium = nombre,
+           fill = lealtad)) +
+   scale_fill_brewer(type = "qual", palette = "Paired") +
+  ggalluvial::geom_flow() +
+  ggalluvial::geom_stratum() +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = "right",# probe los otros, pero hay nombres muy largos , ni reduciendlo letra
+        legend.text = element_text(size=8)) + 
+        
+  labs(title="Movimientos en lealtades",
+       subtitle = "Se consideran las 10 mayores facciones",
+       caption="#datosdemiercoles 2019-04-17",
+       y="Frecuencia",
+       x="",
+       fill="")
+  ggsave(plot=plot_out,file="20190417_alluvial.png")
+
+
+```
+
+## comunicar
+
+me desvirtue demasiado en este, 
+no sabia bien que iba a poner, hice muchas cosas diferentes
+
+al final metermine decidiendo por publicar el de circlepack como para ver algo diferente. 
+no le agrego animacion por que tengo que guardar algo para el tidy tuesday.
+
+### recursos: 
+
+- 
+
+
