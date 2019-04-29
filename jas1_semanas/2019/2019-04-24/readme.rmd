@@ -1,0 +1,152 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-04-24: gapminder en español"
+author: "julio"
+date: "10-03-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-04-24:gapminder en español
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+- Hacer algo de series temporales
+
+
+## Detalles:
+
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(dplyr)
+library(tidyr)
+
+library(skimr)
+library(readr) 
+library(ggplot2)
+library(forcats)
+library(stringr)
+library(purrr)
+library(gganimate) #animacion
+
+library(scales)
+library(ggrepel) # textos anotacioens
+library(ggpmisc) # install.packages("ggpmisc")
+library(ggalluvial)# install.packages("ggalluvial")
+library(ggforce)
+```
+
+# explorar
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+gapminder <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-04-24/gapminder_es.csv")
+```
+
+# la animacion clasica de gap minder
+Y = esperanza de vida
+x= ingreso por persona por anio
+tamaño = poblacion
+color = region del mundo
+tiempo / background = año
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+start_pause <- 0
+end_pause <- 0
+# para escalas: https://www.datanovia.com/en/blog/ggplot-log-scale-transformation/
+
+grafico_resultante <- gapminder %>% 
+    ggplot(aes(x=pib_per_capita,
+               y=esperanza_de_vida,
+               size=poblacion,
+               color=continente,
+               label=pais))+
+    geom_point(alpha=0.5)+
+    # geom_text(aes(x=50000, # descartado no se ve bien.
+    #               y=60,
+    #               label=floor(anio)),
+    #          alpha=0.5,
+    #          color="grey",
+    #          fontface=4,
+    #          fontsize=100)+
+    # scale_x_log10() +
+    scale_x_log10(breaks = trans_breaks("log10",
+                                        function(x) 10^x),
+              labels = trans_format("log10", 
+                                    math_format(10^.x)))+
+    # geom_label_repel(aes(y = pib_per_capita, 
+    #                      x = pib_per_capita, 
+    #                      label = pais), 
+    #                  hjust = 1, nudge_x = 20) +
+    stat_dens2d_filter_g(geom = "label_repel", keep.fraction = 0.1)+
+    theme_light()+
+    theme(legend.position = 'none') +
+    transition_time(anio) +
+    ease_aes('linear')+
+    labs(title = paste0("Gapminder Cláisco: ", '{floor(frame_time)}'),
+         subtitle = "",
+         caption="#DatosdeMieRcoles 2019-04-24",
+         x="PIB per cápita (en USD, ajustados según inflación)",
+         y="Esperanza de vida al nacer ( en años )") #+
+    # facet_grid(.~continente)
+# https://www.brodrigues.co/blog/2018-12-27-fun_gganimate/
+animacion <- animate(grafico_resultante,nframes =  200,fps =  10,width = 800, height = 600)
+anim_save(animation = animacion,filename = "gapminder_julio.gif")
+
+    
+```
+
+# time series
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+gapminder %>% 
+    ggplot(aes(x=anio,
+               y=esperanza_de_vida,
+               color=continente,
+               label=pais))+
+    geom_point(alpha=0.5)+
+    geom_line(alpha=0.5)
+
+
+var_vida_grafico <- gapminder %>% 
+    ggplot(aes(x=continente,
+               y=esperanza_de_vida,
+               fill=continente,
+               label=pais))+
+    geom_boxplot(alpha=0.5)+
+    # stat_dens2d_filter_g(geom = "label_repel", keep.fraction = 0.1)+
+    theme_light()+
+    theme(legend.position = 'none') +
+    transition_time(anio) +
+    ease_aes('linear')+
+    labs(title = paste0("Variabilidad en Esperanza de vida: ", '{floor(frame_time)}'),
+         subtitle = "",
+         caption="#DatosdeMieRcoles 2019-04-24",
+         x="",
+         y="Esperanza de vida al nacer ( en años )") #+
+    # facet_grid(.~continente)
+# https://www.brodrigues.co/blog/2018-12-27-fun_gganimate/
+animacion <- animate(var_vida_grafico,nframes =  100,fps =  10,width = 800, height = 600)
+anim_save(animation = animacion,filename = "vida_var_julio.gif")
+
+
+```
+
+# comunicar
+
+la idea era hacer algo de time series, pero buen ... uno se entretiene con los chiches visuales :p 
+termine dedicandole un monton a armar la parte del gapminder clasico
+
+se refresco el tema de gganimate, 
+se refresco el tema de como mostrar labels dinamicas.
+
+ver lo de https://twitter.com/harrocyranka/status/1114179399736274949
