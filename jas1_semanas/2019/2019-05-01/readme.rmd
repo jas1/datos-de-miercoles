@@ -1,0 +1,342 @@
+
+
+---
+title: "Datos de miercoles, desafío: Semana 2019-05-01 Comercio Hispanoamérica-Mundo"
+author: "julio"
+date: "10-03-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-05-01 Comercio Hispanoamérica-Mundo
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+- Comercio Hispanoamérica-Mundo
+
+- Grafos + mapa 
+
+## Detalles:
+
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(dplyr)
+library(tidyr)
+
+library(skimr)
+library(readr) 
+library(ggplot2)
+library(forcats)
+
+library(stringr)
+library(purrr)
+
+library(ggalluvial)# install.packages("ggalluvial")
+library(ggforce)
+
+library(igraph)
+library(visNetwork)
+
+library(rworldxtra) # para datos iso3, segun gabo
+library(sf)
+library(gganimate)
+
+
+# devtools::install_github('rensa/ggflags')
+library(ggflags) # https://github.com/rensa/ggflags
+
+```
+
+# explorar
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+comercio_hispanoamerica_mundo <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-05-01/comercio_hispanoamerica_mundo_agregado.csv")
+
+glimpse(comercio_hispanoamerica_mundo)
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+skimr::skim(comercio_hispanoamerica_mundo)
+```
+
+# Paises participantes
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# uso: maps::iso3166 +ggplot2::map_data('world')
+world_data_iso <- maps::iso3166
+world_data <- ggplot2::map_data('world')
+paises_total <- comercio_hispanoamerica_mundo %>% 
+    count(nombre_pais_destino,codigo_iso_destino) %>% 
+    rename(pais=nombre_pais_destino,iso_3=codigo_iso_destino) %>% 
+    union_all(comercio_hispanoamerica_mundo %>% 
+    count(nombre_pais_origen,codigo_iso_origen) %>% 
+        rename(pais=nombre_pais_origen,iso_3=codigo_iso_origen)) %>% 
+    distinct(pais,iso_3) %>% 
+    mutate(iso_3=stringr::str_to_upper(iso_3)) %>% 
+    left_join(world_data_iso,by=c("iso_3"="a3")) %>% 
+    left_join(world_data,by=c("sovereignty"="region"))
+
+paises_con_problemas <- paises_total %>% 
+    filter(is.na(long))
+
+
+# data("World") 
+# 
+# world_data_w_iso <- world_data %>% 
+#     left_join(maps::iso3166,by=c("region"="mapname")) %>% 
+#     count(region,a3)
+
+paises_con_problemas
+
+world_data %>% filter(region=="Barbuda")
+world_data %>% filter(region=="Antigua")
+
+world_data %>% filter(region=="Saint Kitts")
+world_data %>% filter(region=="Nevis")
+
+world_data %>% filter(region=="Saint Vincent")
+world_data %>% filter(region=="Grenadines")
+
+world_data %>% filter(region=="Trinidad")
+world_data %>% filter(region=="Tobago")
+
+world_data %>% 
+    distinct(region) %>% 
+    arrange(region) %>% 
+    filter(str_detect(region,"T"))
+
+ 
+```
+
+# grafo comercio
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+df_grafo_total <- comercio_hispanoamerica_mundo %>% 
+    select(codigo_iso_origen,codigo_iso_destino,anio,valor_exportado_dolares,valor_importado_dolares)
+
+
+```
+
+
+```{r}
+# Otros lios
+# 
+# #CHN	China China(?!:Hong Kong|:Macao) / #HKG	Hong Kong	China:Hong Kong
+# maps::iso3166 %>% filter(str_detect(mapname,"China")) 
+# # SJM Svalbard and Jan Mayen / NOR	Norway
+# maps::iso3166 %>% filter(str_detect(mapname,"Norway"))
+# # FIN == Finland / Aland Islands == ALA
+# maps::iso3166 %>% filter(str_detect(mapname,"Finland"))
+# maps::iso3166 %>% filter(str_detect(mapname,"UK")) #GBR	United Kingdom of Great Britain and Northern Ireland	UK(?!r)
+# 
+# # bardo porque son varias de diferentes soberanos asi que no las tomo.
+# # https://en.wikipedia.org/wiki/Virgin_Islands
+# maps::iso3166 %>% filter(str_detect(ISOname,"Virgin islands"))
+# 
+# Siachen Glacier	
+# 
+# glimpse(world_data)
+# ggthemes::theme_map()
+```
+
+
+
+## VERSION GABO 
+
+Aca agarro el codigo de gabo y trato de replicarlo
+agrego comentarios / cambio cosas para mejorar mi comprension del tema.
+
+https://twitter.com/gavg712/status/1124351099849330689
+
+
+
+```{r}
+
+# install.packages("rworldxtra")
+data("countriesHigh", package = "rworldxtra")
+
+# listado paises para SF ( los mapas )
+paises <- countriesHigh %>% 
+  spTransform("+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs") %>% # normalizacion de loa proyeccion  y cosas del mapa
+  st_as_sf() %>%
+  filter(REGION != "Antarctica") # excluir antartida
+
+
+# calcular los centroides de los paises
+paises_centroid <- paises %>%
+  select(NAME, NAME_FORMA, ISO_A3,ISO_A2, REGION, LON, LAT) %>%
+  st_centroid() %>% # da los centroides de los paises
+  mutate(LON = st_coordinates(.)[,1],
+         LAT = st_coordinates(.)[,2]) %>% # extrae las coordenadas
+  mutate_if(.predicate = is.factor, list(~as.character)) # si factor, hacerlo caracter
+
+# calcular balance comercio por pais
+balance_comercio <- comercio_hispanoamerica_mundo %>% 
+  filter(codigo_iso_origen != codigo_iso_destino) %>% # filtra para que no sea si mismo
+  group_by(anio, codigo_iso_origen, codigo_iso_destino) %>% # agrupa por anio , origen > destino
+  summarise(exportado = sum(valor_exportado_dolares),  # exportado total USD
+            importado = sum(valor_importado_dolares)) %>% # importado total USD
+  ungroup() %>% # desagrupa
+  mutate(balance = (exportado - importado)/1e6, # balance en Millones USD
+         rel = scales::rescale(exportado, to = c(0.1,5)), # ? 
+         codigo_iso_destino = str_to_upper(codigo_iso_destino), # para poder cruzar facil
+         codigo_iso_origen = str_to_upper(codigo_iso_origen)) # para poder cruzar facil
+
+# cruzo balance con los centroides para poder armar el grafo y posicionarlo en mapa
+
+cruzar_origen <- paises_centroid %>% 
+    select(ISO_A3, REGION, LON, LAT,ISO_A2) %>% 
+    rename(orig_lon = LON, orig_lat = LAT,
+           orig_region=REGION,orig_postal=ISO_A2)
+cruzar_destino <- paises_centroid %>% 
+    select(ISO_A3, REGION, LON, LAT,ISO_A2) %>% 
+    rename(dest_lon = LON, dest_lat = LAT,dest_region=REGION,
+           dest_postal=ISO_A2) %>% 
+    mutate(dest_region_es = case_when(dest_region=="Africa"~"África",
+                                      dest_region=="Asia"~"Asia",
+                                      dest_region=="Australia"~"Oceanía",
+                                      dest_region=="Europe"~"Europa",
+                                      dest_region=="North America"~"América del Norte",
+                                      dest_region=="South America and the Caribbean"~"América del Sur y Central"))
+
+# cruzar_destino %>% count(dest_region_es) %>% pull(dest_region_es)
+
+comercio_centroid <- balance_comercio %>% 
+  left_join(cruzar_origen, 
+            by = c("codigo_iso_origen" = "ISO_A3")) %>%
+  select(-geometry) %>%
+  left_join(cruzar_destino, 
+            by = c("codigo_iso_destino" = "ISO_A3")) %>%
+  filter(!is.na(dest_lat))
+
+comercio_centroid_argentina_exporta <- comercio_centroid %>% 
+    filter(codigo_iso_origen=="ARG") %>%
+    mutate(grp = paste0(anio, " a ", dest_region_es)) %>%
+    st_as_sf()
+
+comercio_centroid_argentina_importa <- comercio_centroid %>% 
+    filter(codigo_iso_destino=="ARG") %>%
+    mutate(grp = paste0(anio, " desde ", orig_region)) %>%
+    st_as_sf()
+    
+# 
+# comercio_centroid %>% 
+#     count(REGION)
+
+
+```
+
+# hago el mapa de gabo 1
+
+
+
+```{r}
+# hago mapa
+anim_lat_arg_exp <- ggplot() +
+  geom_sf(data = paises, fill = "white", color = "black", size = .15) +
+  geom_line(data = comercio_centroid_argentina_exporta, 
+            aes(orig_lon, orig_lat, color = codigo_iso_origen),
+             size = 0.5) +
+  geom_curve(data = comercio_centroid_argentina_exporta, 
+             aes(x = orig_lon, y = orig_lat, 
+                 xend = dest_lon, yend = dest_lat,
+                 color = codigo_iso_origen, group = grp, 
+                 size = rel), alpha=0.25, show.legend = TRUE) +
+  coord_sf(crs = st_crs(paises)) +
+  guides(color = guide_legend(nrow = 2), size = FALSE) +
+
+  # geom_text(data=comercio_centroid_argentina_exporta,
+  #           aes(label = as.character(anio)),
+  #           x = 4.1,
+  #           y = 4,
+  #           color = '#ededed',
+  #           size = 20) +
+  geom_point(data=comercio_centroid_argentina_exporta,
+            aes(x=dest_lon,
+                y=dest_lat),
+            size = rel(10), 
+            col = 'black') +
+  geom_flag(data=comercio_centroid_argentina_exporta,
+            aes(country = stringr::str_to_lower(dest_postal) ,
+                x=dest_lon,
+                y=dest_lat), 
+            size = rel(08)) +
+    
+  theme(axis.text = element_blank(),
+        axis.title = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        # legend.background = element_rect(fill = "white"),
+        # legend.text = element_text(color = "white"),
+        legend.key = element_rect(fill = NA, color = NA)#,
+        #panel.background = element_rect(fill = "black")
+        ) +
+  labs(title = 'Relaciones comerciales de Argentina en el mundo',
+       subtitle = 'Exportaciones en el Año: {current_frame}',
+       caption = "#DatosdeMiercoles") +
+ transition_manual(grp) +
+ enter_fade()+
+ exit_fade()
+
+anim_lat_anim_arg_exp <- gganimate::animate(anim_lat_arg_exp,
+                                    fps = 4, 
+                                    nframes = 40,
+         width = 800, height = 550)
+
+gganimate::anim_save(filename = "relaciones_comerciales_exportaciones_arg.gif", 
+          animation = anim_lat_anim_arg_exp)
+
+```
+
+## Comunicar
+
+algunos problemas con las banderas.habia puesto postal. en vez de ISO 2
+
+con los anti join e inner join pude darme cuata donde le estaba pifiando.
+
+```{r}
+# prueba de las banderas
+comercio_centroid_argentina_exporta %>% 
+    filter(anio==2013) %>% 
+    ggplot()+
+  geom_point(data=comercio_centroid_argentina_exporta,
+            aes(x=dest_lon,
+                y=dest_lat),
+            size = rel(10), 
+            col = 'black') +
+  geom_flag(data=comercio_centroid_argentina_exporta,
+            aes(country = stringr::str_to_lower(dest_postal) ,
+                x=dest_lon,
+                y=dest_lat), 
+            size = rel(08))
+
+comercio_centroid_argentina_exporta %>% 
+    mutate(pais=stringr::str_to_lower(dest_postal)) %>% 
+    select(pais) %>% 
+    inner_join(data.frame(pais = names(gfl)))
+
+
+comercio_centroid_argentina_exporta %>% 
+    mutate(pais=stringr::str_to_lower(dest_postal)) %>% 
+    select(pais) %>% 
+   anti_join(data.frame(pais = names(gfl)))
+
+
+```
+
+se armo interesante thread aca: 
+
+https://twitter.com/Diego_Koz/status/1124217883532378112
+
+
