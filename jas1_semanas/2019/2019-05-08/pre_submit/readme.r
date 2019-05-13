@@ -16,17 +16,30 @@ library(tidyr)
 # leugo con stri_conv hice que me lo convirtiera a UTF8
 
 # aca la metadata de los trabajos en español
-# gt_es_metadata <- gutenbergr::gutenberg_works(languages = "es")
+gt_es_metadata <- gutenbergr::gutenberg_works(languages = "es")
+glimpse(gt_es_metadata)
+gt_es_metadata %>% 
+    count(author,sort = TRUE) %>% 
+    count(n,sort = TRUE) %>% 
+    mutate(totales = n * nn) %>% 
+    arrange(desc(n)) %>% 
+    mutate(sum_acum =cumsum(totales)) %>% 
+    rename(cantidad_textos=n,
+           frecuencia_cantidad_textos = nn, 
+           total_cantidad_por_frecuencia=totales,
+           acumulado_total=sum_acum)
+    
+
 # 
 # # aca la obtencion de uno en particular para probar como vienen
-# quijote <- gutenbergr::gutenberg_download(gutenberg_id = 2000) %>% 
+# quijote <- gutenbergr::gutenberg_download(gutenberg_id = 2000) %>%
 #     mutate(texto=stringi::stri_conv(str = text, from = "ISO-8859-1", to = "UTF-8"))
 
 
 # tratando de generalizar # GUARDA BAJA TODO !
-# metadata_con_texto <- gt_es_metadata %>% 
+# metadata_con_texto <- gt_es_metadata %>%
 #     mutate(textos = purrr::map(.x=gutenberg_id,.f=function(g_id){
-#         texto_actual <- gutenbergr::gutenberg_download(gutenberg_id = g_id) %>% 
+#         texto_actual <- gutenbergr::gutenberg_download(gutenberg_id = g_id) %>%
 #             mutate(texto=stringi::stri_conv(str = text, from = "ISO-8859-1", to = "UTF-8"))
 #         texto_actual
 #     }))

@@ -1,0 +1,200 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-05-08 Parlamentos"
+author: "julio"
+date: "10-03-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-05-08 Parlamentos
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+- el de la camara, como lo tiene el tuqmano: https://twitter.com/TuQmano/status/1126979232087924742/photo/1
+- ayudar a karina con mejorar el scraping: https://github.com/karbartolome/datosdemiercoles/blob/master/DDM_Sem5_Parlamento.R 
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(ggparliament)#;install.packages("ggparliament")
+
+library(rworldxtra) # para datos iso3, segun gabo
+library(sf)
+
+```
+
+# explorar
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+datos_uip <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-05-08/datos_uip.csv")
+glimpse(datos_uip)
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+skimr::skim(datos_uip)
+```
+
+# aplicacion camara como lo armo el tuqmano
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+#FILTRAMOS PAIS - ARGENTINA
+datos_AR <- datos_uip %>% 
+  filter(str_detect(pais, "Argentina")) 
+
+
+
+# TRANSFORMAMOS DATOS PARA CAMARA BAJA (DIPUTADES)
+diputadosAR <- datos_AR %>% 
+  filter(camara == "baja") %>% 
+  mutate(ellas = round(porcentaje_mujeres/100 * numero_integrantes), 
+         ellos = numero_integrantes - ellas) %>% 
+  gather(genero, n, ellas:ellos) %>% 
+  select(genero, n) 
+
+AR_data_dip <- parliament_data(election_data = diputadosAR, 
+                           type = "semicircle", 
+                           party_seats = diputadosAR$n, 
+                           parl_rows = 6) %>% as_tibble() 
+
+plot_dipu <- AR_data_dip %>% 
+    ggplot( aes(x, y, colour = genero)) +
+  geom_parliament_seats(size = 5) +
+  draw_majoritythreshold(n = 128, label = F, type = 'semicircle')+
+  geom_highlight_government(genero == "ellas", colour = "black", size = 5) +
+  theme_ggparliament() +
+  scale_color_manual(values = c("purple", "blue")) +
+  theme(text = element_text(family = "AvenirNext LT Pro Bold")) +
+  labs(title = "¿Cuánto falta para la paridad de género en Argentina?", 
+       subtitle = "Cámara de Diputados (n = 257)") +
+theme(legend.position = "none")
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+visdat::vis_miss(datos_uip)
+naniar::gg_miss_var(datos_uip)
+DataExplorer::create_report(datos_uip)
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+data("countriesHigh", package = "rworldxtra")
+paises <- countriesHigh %>% 
+    st_as_sf() %>%
+    as_tibble() %>% 
+    filter(REGION != "Antarctica") %>% 
+    select(NAME, ISO_A3,ISO_A2,REGION) %>% 
+    mutate(ISO_A2=str_to_lower(ISO_A2))%>% 
+    mutate(ISO_A3=str_to_lower(ISO_A3)) %>% 
+    mutate(region_es = case_when(REGION=="Africa"~"África",
+                                  REGION=="Asia"~"Asia",
+                                  REGION=="Australia"~"Oceanía",
+                                  REGION=="Europe"~"Europa",
+                                  REGION=="North America"~"América del Norte",
+                                  REGION=="South America and the Caribbean"~"América del Sur y Central"))
+
+datos_uip_procesado <- datos_uip %>% 
+    mutate(porcentaje_hombres=(100-porcentaje_mujeres)/100) %>% 
+    mutate(porcentaje_mujeres=porcentaje_mujeres/100) %>% 
+    gather(key = "genero",value = "porcentaje",porcentaje_hombres,porcentaje_mujeres) %>% 
+    arrange(pais) %>% 
+    left_join(paises,by = c("iso_pais"="ISO_A3") )
+datos_uip_procesado
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+
+
+alta_plot <- datos_uip_procesado %>% 
+    filter(region_es=="América del Sur y Central") %>% 
+    filter(camara=="alta") %>% 
+    filter(!is.na(porcentaje)) %>% 
+    mutate(pais=fct_reorder2(pais,genero,porcentaje)) %>% 
+    # group_by(camara,por) %>% 
+    # summarise(total_por_camara=sum(numero_integrantes,na.rm = TRUE)) %>% 
+    ggplot(aes(x=pais,y=porcentaje,fill=genero))+
+    geom_col()+
+    scale_fill_manual(values = c("#83c8ea","#f6576d"))+
+    geom_hline(yintercept = 0.25,linetype=2,alpha=0.5)+
+    geom_hline(yintercept = 0.50,linetype=2,alpha=0.5)+
+    geom_hline(yintercept = 0.75,linetype=2,alpha=0.5)+
+    # facet_grid(camara~.)+
+    scale_y_continuous(labels = scales::percent)+
+    coord_flip()+
+    
+    labs(title = "Porcentaje de Genero En América del Sur y Central",
+         subtitle = "En la camara Alta",
+         x="",y="",fill="Género",
+         caption = "#DatosdeMieRcoles")+
+    theme_light()
+    alta_plot
+    
+baja_plot <- datos_uip_procesado %>% 
+    filter(region_es=="América del Sur y Central") %>% 
+    filter(camara=="baja") %>% 
+    filter(!is.na(porcentaje)) %>% 
+    mutate(pais=fct_reorder2(pais,genero,porcentaje)) %>% 
+    # group_by(camara,por) %>% 
+    # summarise(total_por_camara=sum(numero_integrantes,na.rm = TRUE)) %>% 
+    ggplot(aes(x=pais,y=porcentaje,fill=genero))+
+    geom_col()+
+    scale_fill_manual(values = c("#83c8ea","#f6576d"))+
+    geom_hline(yintercept = 0.25,linetype=2,alpha=0.5)+
+    geom_hline(yintercept = 0.50,linetype=2,alpha=0.5)+
+    geom_hline(yintercept = 0.75,linetype=2,alpha=0.5)+
+    # facet_grid(camara~.)+
+    scale_y_continuous(labels = scales::percent)+
+    coord_flip()+
+    
+    labs(title = "Porcentaje de Genero En América del Sur y Central",
+         subtitle = "En la camara Baja",
+         x="",y="",fill="Género",
+         caption = "#DatosdeMieRcoles")+
+    theme_light()
+    baja_plot
+    
+unica_plot <- datos_uip_procesado %>% 
+    filter(region_es=="América del Sur y Central") %>% 
+    filter(camara=="única") %>% 
+    filter(!is.na(porcentaje)) %>% 
+    mutate(pais=fct_reorder2(pais,genero,porcentaje)) %>% 
+    # group_by(camara,por) %>% 
+    # summarise(total_por_camara=sum(numero_integrantes,na.rm = TRUE)) %>% 
+    ggplot(aes(x=pais,y=porcentaje,fill=genero))+
+    geom_col()+
+    scale_fill_manual(values = c("#83c8ea","#f6576d"))+
+    geom_hline(yintercept = 0.25,linetype=2,alpha=0.5)+
+    geom_hline(yintercept = 0.50,linetype=2,alpha=0.5)+
+    geom_hline(yintercept = 0.75,linetype=2,alpha=0.5)+
+    # facet_grid(camara~.)+
+    scale_y_continuous(labels = scales::percent)+
+    coord_flip()+
+    
+    labs(title = "Porcentaje de Genero En América del Sur y Central",
+         subtitle = "En la camara Única",
+         x="",y="",fill="Género",
+         caption = "#DatosdeMieRcoles")+
+    theme_light()
+    unica_plot
+
+ggsave(plot=unica_plot,filename = "unica_plot.png")
+ggsave(plot=baja_plot,filename = "baja_plot.png")
+ggsave(plot=alta_plot,filename = "alta_plot.png")
+
+# cowplot::plot_grid(plotlist = list(unica_plot,baja_plot,alta_plot))
+```
