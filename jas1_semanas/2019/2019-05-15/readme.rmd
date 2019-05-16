@@ -310,3 +310,7 @@ skimr::skim(top_50_total_es_para_desafio_final)
 #                   delim = "\t")
 # skimr::skim(top_50_desde_file)
 ```
+
+# off topic, super util para git: 
+
+https://stackoverflow.com/questions/2100907/how-to-remove-delete-a-large-file-from-commit-history-in-git-repository
