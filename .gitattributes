@@ -1,0 +1,2 @@
+jas1_semanas/2019/2019-05-08/pre_submit/metadatos_con_textos.rds filter=lfs diff=lfs merge=lfs -text
+jas1_semanas/2019/2019-05-08/pre_submit/metadatos_con_textos.txt filter=lfs diff=lfs merge=lfs -text
