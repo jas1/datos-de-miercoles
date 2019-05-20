@@ -7,39 +7,24 @@ Esta semana exploraremos datos de rankings musicales "Top 50" de países hispano
 ## Obtener los datos
 
 
-<<<<<<< HEAD
-Para obtener los datos deberás seguir estos 4 sencillos pasos:
-
-- Hacer una App de Spotify Developer [aquí](https://developer.spotify.com/dashboard) (puedes seguir las imágenes en [estas instrucciones en inglés](https://r-music.rbind.io/posts/2018-10-01-rspotify/)):
-    -   Crea una cuenta si no tienes una
-    -   Crea una app declarando si es comercial o no (en nuestro caso, no lo es).
-=======
 Para obtener los datos deberás seguir estos 3 sencillos pasos:
 
 - Hacer una App de Spotify Developer [aquí](https://developer.spotify.com/dashboard) (puedes seguir las imágenes en [estas instrucciones en inglés](https://r-music.rbind.io/posts/2018-10-01-rspotify/)):
     -   Crea una cuenta si no tienes una
     -   Crea una app con el nombre que quieras (app-id), escoge Website entre las opciones y declara si es comercial o no (en nuestro caso, no lo es).
->>>>>>> b2cf271d086abcfa84c81e1657c218ba01f51186
     -   Copia tu `client ID` y tu `client Secret`.
     -   Haz clic en "Edit settings" y cambia Redirect URLs a <http://localhost:1410/> .
 - Instala los paquetes `Rspotify` y `httpuv` si no los tienes (con `install.packages`).
 - En el siguiente código, cambia en la línea que se definen las `keys` los valores de `app_id`, `client_id` y `client_secret` por tus datos (línea 8. contando los saltos de línea).
-<<<<<<< HEAD
-- Corre el código. Dependiendo de tu conexión, tardará en ejecutarse unos 4 minutos.
-=======
 
 Corre el código. Dependiendo de tu conexión, tardará en ejecutarse unos 4 minutos.
->>>>>>> b2cf271d086abcfa84c81e1657c218ba01f51186
 
 <!-- -->
     ########### Extraer Top 50 ############
 
     # install.packages("Rspotify")
     # install.packages("tidyverse")
-<<<<<<< HEAD
-=======
     # install.packages("httpuv")
->>>>>>> b2cf271d086abcfa84c81e1657c218ba01f51186
     library(Rspotify)
     library(tidyverse)
 
@@ -244,8 +229,6 @@ Si no sabes por dónde empezar, puedes mirar algunas propuestas de visualizació
 -----------
 
 Si estás interesado en obtener más datos musicales puedes obtenerlos mediante el paquete `Rspotify`.
-<<<<<<< HEAD
-=======
 
 ## Otra versión del código
 
@@ -447,4 +430,3 @@ skimr::skim(top_50_total_es_para_desafio_final)
 #                   delim = "\t")
 # skimr::skim(top_50_desde_file)
 ```
->>>>>>> b2cf271d086abcfa84c81e1657c218ba01f51186
