@@ -6,4 +6,9 @@
 *.html
 *_files
 **/libs/*
+# para ignorar conexiones con api keys
 .httr-oauth
+# para ignorar archivos de configuracion 
+config.txt
+# para ignorar el archivo de spotify asi no hay problemas por comer datos.
+20190515_spotify_out.txt

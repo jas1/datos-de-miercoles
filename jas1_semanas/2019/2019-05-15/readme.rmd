@@ -96,10 +96,11 @@ skimr::skim(dataset_spotify)
 ## Conexion spotify
 
 ```{r jas1_conexion, echo=FALSE}
+claves_spotify <- readr::read_delim("config.txt",delim="\t")
 
-app_id <- 'aplicacion_datos_de_miercoles' # el nombre que pusiste en la aplicacion
-client_id<- 'asd123' # el client id que figura en la web de spotify
-client_secret <- 'asd123' # el client secret que figura en la web de spotify
+app_id <- claves_spotify$app # el nombre que pusiste en la aplicacion
+client_id<- claves_spotify$client # el client id que figura en la web de spotify
+client_secret <- claves_spotify$key # el client secret que figura en la web de spotify
 
 keys <- spotifyOAuth(app_id, client_id, client_secret)
 ```
@@ -295,9 +296,9 @@ skimr::skim(top_50_total_es_para_desafio_final)
 ```{r}
 # no se puede subir a github por tema de condiciones de spotify.
 # por eso se usa la api y el megatutorial de la api
-# readr::write_delim(top_50_total_es_para_desafio_final,
-#                    delim = "\t",
-#                    path = "top_50_es.txt")
+readr::write_delim(top_50_total_es_para_desafio_final,
+                   delim = "\t",
+                   path = "20190515_spotify_out.txt")
 
 ```
 
@@ -306,11 +307,214 @@ skimr::skim(top_50_total_es_para_desafio_final)
 ```{r}
 # no se puede subir a github por tema de condiciones de spotify.
 # por eso se usa la api y el megatutorial de la api
-# top_50_desde_file <- readr::read_delim(file = "top_50_es.txt",
-#                   delim = "\t")
-# skimr::skim(top_50_desde_file)
+top_50_desde_file <- readr::read_delim(file = "20190515_spotify_out.txt",
+                  delim = "\t")
+skimr::skim(top_50_desde_file)
 ```
+
+# Desafio semanal: 
+
+Esta semana inverti bastante en arreglar y levantar los datos como yo queria, con eso me quede satisfecho
+
+sin embargo me gustaria hacer algo copado , un radarplot/webplot podria estar bueno
+es un buen momento , tambien para aplicar lo que haceese tipo que hace formitas y las pone con algun colorr. y todo facetado,hay que probar.
+
+
+
+## cuantos paises ?
+
+```{r}
+top_50_desde_file %>%  
+    count(pais_nombre)
+```
+
+
+
+
+## PCA FactoMineR / factoextra
+
+
+```{r}
+library("FactoMineR")
+library("factoextra")
+# http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/112-pca-principal-component-analysis-essentials/
+
+features_medias_por_pais <- top_50_desde_file %>%  
+    select(pais_nombre,starts_with("feature_")) %>% 
+    group_by(pais_nombre) %>% 
+    summarise_all(mean) %>% 
+    column_to_rownames("pais_nombre") %>% 
+    select(feature_bailabilidad,feature_energia,
+           feature_fuerza,feature_hablado,feature_acustico)
+    
+pais_media_pca <- PCA(features_medias_por_pais, graph = FALSE)
+fviz_eig(pais_media_pca, addlabels = TRUE, ylim = c(0, 100))
+fviz_pca_var(pais_media_pca, col.var = "red")
+fviz_pca_var(pais_media_pca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE # Avoid text overlapping
+             )
+
+
+library("corrplot")
+pais_media_pca_var <- get_pca_var(pais_media_pca)
+corrplot(pais_media_pca_var$cos2, is.corr=FALSE)
+
+
+
+
+```
+
+# PCA casero
+
+```{r}
+
+features_medias_por_pais_2 <- top_50_desde_file %>%  
+    select(pais_nombre,starts_with("feature_")) %>% 
+    group_by(pais_nombre) %>% 
+    summarise_all(mean) %>% 
+    column_to_rownames("pais_nombre") #%>% 
+    # select(feature_bailabilidad,feature_energia,
+    #        feature_fuerza,feature_hablado,feature_acustico)
+
+pais_media_pca_casero <- prcomp(features_medias_por_pais_2,scale=TRUE)
+
+pr.var <- pais_media_pca_casero$sdev^2
+pve <- pr.var / sum(pr.var)
+
+colnames_2 <- colnames(pais_media_pca_casero$rotation) %>% 
+    if_else(str_length(.)==3,str_replace(.,"PC","PC0"),.)
+
+pr_explained <- tibble(pc=colnames_2,
+                   pve,
+                   cumulative_prop=cumsum(pve))
+
+par_title <- "Gráfico de sedimentación de Componentes Principales"
+par_subtitle <- "rojo: proporción acumulada"
+par_y <- "Proporción de Variancia Explicada"
+
+plot_out <- pr_explained %>% 
+ggplot(aes(y=pve,x=pc,group=""))+
+geom_line()+
+geom_point()+
+geom_text(label = paste(round(pve,3)*100,' %'), vjust = -0.4, hjust = 0.5)+
+geom_line(aes(y=cumulative_prop),color="red")+
+geom_point(aes(y=cumulative_prop),color="red")+
+geom_text(aes(y=cumulative_prop),color="red",label = paste(round(pr_explained$cumulative_prop,3)*100,' %'), vjust = -0.4, hjust = 0.5)+
+scale_y_continuous(limits = c(0,1),labels = scales::percent) +
+theme_light()+
+labs(title=par_title,
+     subtitle=par_subtitle,
+     x="", y=par_y)
+
+plot_out
+
+data_tmp <-  pais_media_pca_casero$rotation %>% as.data.frame() %>% 
+    tibble::rownames_to_column(var="variable") %>% 
+    gather(PC,valor,-variable) %>% 
+    mutate(PC=if_else(str_length(PC)==3,str_replace(PC,"PC","PC0"),PC))
+    
+
+pl <- data_tmp %>% 
+    ggplot(aes(x=PC,y=valor,fill=variable))+
+    geom_col() +
+    geom_hline(yintercept=0, linetype="dashed", color = "black") +
+    theme_light() +
+    labs(title="Contribución de las variables a las Componentes Principales")
+
+pl
+```
+Intente correr un PCA , pero se me va a mas de 2 variables. 
+las features que destacan
+
+## radarplot ?
+```{r}
+# porque fuerza da en negativo ¬.¬
+features_medias_por_pais_sin_fuerza <- top_50_desde_file %>%  
+    select(pais_nombre,starts_with("feature_")) %>% 
+    group_by(pais_nombre) %>% 
+    summarise_all(mean) %>% 
+    # column_to_rownames("pais_nombre") %>% 
+    select(pais_nombre,feature_bailabilidad,feature_energia,
+           feature_hablado,feature_acustico)
+
+
+# fail de radar chart
+
+features_medias_por_pais_sin_fuerza %>% 
+    gather("medida","valor",starts_with("feature_")) %>% 
+    ggplot(aes(y=valor,x=medida,color=pais_nombre,group=pais_nombre,fill=NULL)) +
+    geom_point()
+    geom_path()
+    geom_polygon()
+    geom_line()+
+    coord_polar()
+
+
+# con libreria
+# install.packages("ggradar")
+# devtools::install_github("ricardo-bion/ggradar")
+library(ggradar)
+
+# ggradar(features_medias_por_pais_sin_fuerza,) +
+#     facet_grid(pais_nombre)
+
+```
+
+# otro fail, asi que voy por un simple corplot
+```{r}
+library("corrplot")
+features_medias_por_pais_sin_fuerza_ni_nombres <- top_50_desde_file %>%  
+    select(pais_nombre,starts_with("feature_")) %>% 
+    group_by(pais_nombre) %>% 
+    summarise_all(mean) %>% 
+    column_to_rownames("pais_nombre") #%>%
+    # select(feature_bailabilidad,feature_energia,
+    #        feature_hablado,feature_acustico)
+
+features_por_pais_sin_fuerza_ni_nombres <- top_50_desde_file %>%  
+    select(pais_nombre,starts_with("feature_"),cancion_numero) %>% 
+    mutate(pais_nro=paste0(pais_nombre,"_",cancion_numero)) %>% 
+    group_by(pais_nro) %>% 
+    # summarise_all(mean) %>% 
+    column_to_rownames("pais_nro") %>% 
+    select( -pais_nombre,-cancion_numero)
+
+colnames(features_medias_por_pais_sin_fuerza_ni_nombres) <- colnames(features_medias_por_pais_sin_fuerza_ni_nombres) %>% 
+    str_replace("feature_","")
+
+colnames(features_por_pais_sin_fuerza_ni_nombres) <- colnames(features_por_pais_sin_fuerza_ni_nombres) %>% 
+    str_replace("feature_","")
+
+corr_matrix_paises_medias <- cor(features_medias_por_pais_sin_fuerza_ni_nombres)
+corr_matrix_paises <- cor(features_por_pais_sin_fuerza_ni_nombres)
+
+corrplot(corr_matrix_paises_medias,
+         title = "Matriz de correlacion de features x medias de pais.")
+
+corrplot(corr_matrix_paises,
+         # title = "Matriz de correlacion de features x medias de pais.",
+         diag = TRUE,
+         type = "lower")
+
+
+```
+
+
+
 
 # off topic, super util para git: 
 
 https://stackoverflow.com/questions/2100907/how-to-remove-delete-a-large-file-from-commit-history-in-git-repository
+
+
+# como para cerrar; 
+
+# aprendi:
+
+- api spotify.
+- como hacer para arreglar lios con archivos grandes
+- que me quede sin tiempo para hacer magia con el desafio
+- me quede con las ganas del radar/spider plot faceteado.
+- desempolve algo de PCA; pero eran muchas PC, y habia mucho que explicar, en poco tiempo asi que no gracias.
+
