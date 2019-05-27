@@ -1,0 +1,143 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-05-22 OMS tuberculosis"
+author: "julio"
+date: "26-05-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-05-22 OMS tuberculosis
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+- poco tiempo veremos que sale 
+- 
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(gganimate)
+# library(ggparliament)#;install.packages("ggparliament")
+
+# library(rworldxtra) # para datos iso3, segun gabo
+# library(sf)
+
+```
+
+# explorar
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+tuberculosis_oms <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-05-22/tuberculosis_oms.csv")
+glimpse(tuberculosis_oms)
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+skimr::skim(tuberculosis_oms)
+```
+
+# tal vez piramide poblacional par alos diferentes grupos
+
+tipo la piramide poblacional que muestra por rango etario , hombres / mujeres
+por grupo. luego esta el tema del año, si sale el plot tal vez se puede animar.
+ahi lo acotaria a 1 solo grupo
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# acotado a nuevos_fpp
+# range(tuberculosis_oms$anio)
+
+# hasta el 1995 no aparecen nros en LA, asi que lo acoto del 1995 a 2012
+
+# tuberculosis_oms %>% 
+#     select(anio,pais,iso2,iso3,starts_with("nuevos_fpp")) %>% 
+#     filter(anio>=1995 & anio<2013) %>% 
+#     mutate(iso2=str_to_lower(iso2)) %>% 
+#     filter(iso2 %in% c('ar','br','cl','co','ec','gf','sr','gy','py','pe','uy','ve')) %>%  # solo LA
+#     select(-pais,-iso2,-iso3) %>% 
+#     group_by(anio) %>% 
+#     summarise_all(sum,na.rm=TRUE)
+    # tuberculosis_oms %>% select(starts_with("nuevos_fpp")) %>%   colnames()
+tuberculosis_piramide <- tuberculosis_oms %>%
+    select(anio,pais,iso2,iso3,starts_with("nuevos_fpp")) %>%
+    filter(anio>=1995 & anio<2013) %>%
+    mutate(iso2=str_to_lower(iso2)) %>%
+    filter(iso2 %in% c('ar','br','cl','co','ec','gf','sr','gy','py','pe','uy','ve')) %>%  # solo LA
+    gather(tipo_old,valor,starts_with("nuevos_fpp")) %>% 
+    mutate(data_genero=if_else(str_detect(tipo_old,"h"),"hombre","mujer")) %>% 
+    mutate(pre_data_edad=str_extract(tipo_old,rebus::one_or_more(rebus::DGT) )) %>% 
+    mutate(data_edad=case_when(pre_data_edad=="014"~"0-14",
+                               pre_data_edad=="1524"~"15-24",
+                               pre_data_edad=="2534"~"25-34",
+                               pre_data_edad=="3534"~"35-44",# arreglado porque se ve estaba mal
+                               pre_data_edad=="4554"~"45-54",
+                               pre_data_edad=="5564"~"55-64",
+                               pre_data_edad=="65"~"65+")) %>% 
+    mutate(tipo="nuevos_fpp")
+
+
+tuberculosis_piramide_2 <- tuberculosis_piramide %>% 
+    select(anio,pais,iso2,iso3,data_edad,data_genero,valor,tipo) %>% 
+    mutate(valor=if_else(data_genero=="hombre",valor*-1,valor))
+
+tuberculosis_piramide_arg <- tuberculosis_piramide_2 %>% filter(iso2=="ar")
+
+rango_valores_min <- ceiling(min(tuberculosis_piramide_arg$valor,na.rm = TRUE) / 100) *100
+rango_valores_max <- ceiling(max(tuberculosis_piramide_arg$valor,na.rm = TRUE) / 100) *100
+
+saltos_seq <- 100
+
+```
+
+# plot piramide 
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+tuberculosis_piramide_arg %>%  
+    filter(anio>1995) %>% 
+    mutate(anio=as.integer(anio)) %>% 
+    ggplot(aes(x = data_edad, y = valor, fill = data_genero)) + 
+  geom_bar(data = . %>% filter(data_genero == "mujer"), stat = "identity") + 
+  geom_bar(data = . %>% filter(data_genero == "hombre"), stat = "identity") + 
+  scale_y_continuous(breaks = seq(rango_valores_min, rango_valores_max, saltos_seq),
+                     labels = paste0(as.character(c(seq((rango_valores_min*-1), 0, -saltos_seq), seq(saltos_seq, rango_valores_max, saltos_seq))))) +
+  coord_flip() + 
+  scale_fill_brewer(palette = "Pastel1") + 
+  theme_light()+
+    labs(title = "Tuberculosis en Argentina {frame_time}",
+         subtitle="Casos nuevos, diagnóstico frotis pulmonar positivo",
+         caption = "#DatosdeMieRcoles")+
+  transition_time(anio) +
+  ease_aes('linear')
+    # facet_grid(.~anio)
+
+
+
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+
+
+```
+
+# utilidad: 
+
+https://rpubs.com/walkerke/pyramids_ggplot2
+
+lo tuve qu acotar mucho y seme fue el tiempo , asi que quedo par a1 solo nomas :/
