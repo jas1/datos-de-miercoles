@@ -1,0 +1,234 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-05-28 sismos"
+author: "julio"
+date: "26-05-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-05-28 sismos
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+- ver lo de las placas que pusieron:  
+- 
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(gganimate)
+library(rgdal)
+# library(raster)
+library(geojsonsf)#;install.packages("geojsonsf")
+library(sf)
+library(sp)
+library(spatialEco)#; install.packages("spatialEco")
+# library(ggparliament)#;install.packages("ggparliament")
+
+# library(rworldxtra) # para datos iso3, segun gabo
+# library(sf)
+
+```
+
+# explorar
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# install.packages(readr)
+
+terremotos <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-05-29/terremotos.csv")
+
+mes <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-05-29/mes.csv")
+
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+skimr::skim(terremotos)
+```
+
+# placas tectonicas !
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+#levantar_placas 
+# obtenido de: 
+# https://twitter.com/violetrzn/status/1133885747747012610
+# https://www.sciencebase.gov/catalog/item/4f4e4a48e4b07f02db62303e
+# placas_shp <- sf::read_sf(here::here("jas1_semanas","2019","2019-05-28",
+#                                  "placas_tectonicas","Plate_Boundaries.shp"))
+
+# estan modo lineas y me complica , buscando lugar donde esten lso poligonos directamente.
+
+# https://www.gislounge.com/find-tectonic-plate-gis-data/
+# https://github.com/fraxen/tectonicplates/blob/master/GeoJSON/PB2002_plates.json
+# PB2002_plates.json
+
+placas_geojson <- geojson_sf(here::here("jas1_semanas","2019","2019-05-28",
+                                 "placas_tectonicas","PB2002_plates.json"))
+
+# hacer el intersect con los puntos de terremotos a ver que placas son las mas activas.
+# en N tiempo
+mundo <- ggplot2::map_data("world")
+
+# terremotos 
+
+terremotos_procesado <- terremotos %>% 
+    mutate(magnitud_2=round(magnitud,digits = 1))
+
+puntos_terremotos <- st_as_sf(terremotos, coords = c("longitud", "latitud"))
+st_crs(puntos_terremotos) <- st_crs(placas_shp)
+
+#https://stackoverflow.com/questions/3647744/intersecting-points-and-polygons-in-r
+# library(spatialEco)#; install.packages("spatialEco")
+terremoto_placa <- point.in.poly(puntos_terremotos, placas_geojson)
+
+terremoto_placa_sf <- st_as_sf(terremoto_placa)
+
+terremotos_por_placa_resumen <- terremoto_placa_sf %>% 
+    group_by(PlateName) %>% 
+    summarise(mangitud_total_placa=count(magnitud),
+              profundidad_total_placa=sum(profundidad),
+              cantidad=n()) %>% 
+    st_set_geometry(NULL)
+
+terremotos_por_placa_para_plot <- inner_join(placas_geojson, 
+                                             terremotos_por_placa_resumen, 
+                                             by = "PlateName")
+```
+
+## Cantidad de terremotos
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# colores de: https://www.color-hex.com/color-palette/78904
+
+cant_terremotos_plot <- ggplot()+
+    geom_sf(data = terremotos_por_placa_para_plot,aes(fill=cantidad),color="#920000")+
+    geom_polygon(aes(long, lat, group = group),
+                 fill = "#FFFFFF", color = "#505050", data = mundo,
+                 alpha=0.5) +
+    # scale_fill_continuous()+
+    # scale_colour_gradient2()+
+    # scale_fill_gradientn(colours = RColorBrewer::brewer.pal(3,"Accent"))+
+    scale_fill_gradientn(colours = c("#c9ffee","#feffba","#ff8a6c"))+
+    # geom_point(data=terremotos,aes(y = latitud,x=longitud))+
+    theme_void()+
+      theme(
+        # panel.background = element_rect("#202020"), 
+        panel.grid = element_blank(),
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        axis.ticks = element_blank())+
+    labs(title="Placas tectónicas más afectadas por Terremotos",
+         subtitle="Por cantidad de terremotos",
+         fill="Cant. terremotos",
+         caption="#DatosdeMieRcoles")
+cant_terremotos_plot
+# ggsave(plot = cant_terremotos_plot,filename = "20190528_cant_terremotos_plot.png")
+```
+
+### cantidad en bar plot
+
+```{r}
+terremotos_por_placa_para_plot_bar <- terremotos_por_placa_para_plot %>% st_set_geometry(NULL) %>% 
+    ungroup() %>% 
+    
+    arrange(desc(cantidad)) %>% 
+    head(20) %>% 
+    mutate(PlateName=fct_reorder(PlateName,cantidad)) %>% 
+    ggplot(aes(x=PlateName,y= cantidad ,fill=PlateName))+
+    scale_y_continuous(breaks = seq(0,
+                                    max(terremotos_por_placa_para_plot$cantidad),
+                                    by=250),
+                     label=seq(0,
+                                    max(terremotos_por_placa_para_plot$cantidad),
+                                    by=250))+
+    geom_col()+
+    coord_flip()+
+    theme_light()+
+    theme(legend.position = "none",
+          axis.text.x = element_text(angle=90))+
+    labs(title="Placas tectónicas más afectadas por Terremotos",
+     subtitle="Primeras 20, por cantidad de terremotos",
+     x="",y="",
+     caption="#DatosdeMieRcoles")
+# ggsave(plot = terremotos_por_placa_para_plot_bar,
+# filename = "20190528_cant_terremotos_plot_bar.png")
+
+```
+
+## Intensidad de terremotos
+
+para que este salga bien hay que discretizar, por el momento no tengo tiempo. 
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# colores de: https://www.color-hex.com/color-palette/78904
+ggplot()+
+    geom_sf(data = terremotos_por_placa_para_plot,aes(fill=mangitud_total_placa),color="#920000")+
+    geom_polygon(aes(long, lat, group = group),
+                 fill = "#FFFFFF", color = "#505050", data = mundo,
+                 alpha=0.5) +
+    scale_fill_gradientn(colours = c("#c9ffee","#feffba","#ff8a6c"))+
+    # geom_point(data=terremotos,aes(y = latitud,x=longitud))+
+    theme_void()+
+      theme(
+        # panel.background = element_rect("#202020"), 
+        panel.grid = element_blank(),
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        axis.ticks = element_blank())+
+    labs(title="Placas tectónicas más afectadas por Terremotos",
+         subtitle="Por Magnitud de terremotos",
+         fill="Magnitud total",
+         caption="#DatosdeMieRcoles")
+```
+
+## Profundidad de terremotos
+
+para que este salga bien hay que discretizar, por el momento no tengo tiempo. 
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# colores de: https://www.color-hex.com/color-palette/78904
+ggplot()+
+    geom_sf(data = terremotos_por_placa_para_plot,aes(fill=profundidad_total_placa),color="#920000")+
+    geom_polygon(aes(long, lat, group = group),
+                 fill = "#FFFFFF", color = "#505050", data = mundo,
+                 alpha=0.5) +
+    # scale_fill_continuous()+
+    # scale_colour_gradient2()+
+    # scale_fill_gradientn(colours = RColorBrewer::brewer.pal(3,"Accent"))+
+    scale_fill_gradientn(colours = c("#c9ffee","#feffba","#ff8a6c"))+
+    # geom_point(data=terremotos,aes(y = latitud,x=longitud))+
+    theme_void()+
+      theme(
+        # panel.background = element_rect("#202020"), 
+        panel.grid = element_blank(),
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        axis.ticks = element_blank())+
+    labs(title="Placas tectónicas más afectadas por Terremotos",
+         subtitle="Por Profundidad de terremotos",
+         fill="Profundidad total",
+         caption="#DatosdeMieRcoles")
+```
+
+# tweet: 
+
+https://twitter.com/jspairani/status/1135222363166035969
+
+# utilidades: 
+
+- colores de: https://www.color-hex.com/color-palette/78904
+- intersectar: https://stackoverflow.com/questions/3647744/intersecting-points-and-polygons-in-r
+- https://github.com/fraxen/tectonicplates/blob/master/GeoJSON/PB2002_plates.json
+
