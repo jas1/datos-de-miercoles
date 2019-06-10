@@ -1,0 +1,214 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-06-05 airbnb"
+author: "julio"
+date: "26-05-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-06-05 airbnb
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+AIRBnB LA.
+
+## Detalles:
+
+- ver de hacer un 3d ggplot con barrios con cantidad de publicaciones airbnb
+- 
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(geojsonsf)
+library(sf)
+library(rayshader)
+
+```
+
+# explorar
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+buenos_aires <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-06-05/buenos_aires.csv")
+
+cdmx <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-06-05/cdmx.csv")
+
+rio <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-06-05/rio.csv")
+
+santiago <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-06-05/santiago.csv")
+
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+skimr::skim(terremotos)
+```
+
+
+# obtener las publicaciones por barrio
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+buenos_aires_barrios_count <- buenos_aires %>% group_by(barrio) %>% 
+    summarise(publicaciones=n(),
+              precio_total=sum(precio),
+              precio_medio=mean(precio)) %>% 
+    mutate(barrio=str_to_upper(barrio))  # para cruzar barrios
+    # mutate(ratio_cantidad_precio=)
+
+```
+
+# obtener los barrios de CABA
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+# barrios.geojson
+
+# caba_geojson <- geojson_sf(here::here("jas1_semanas","2019","2019-06-09","barrios.geojson"))
+
+caba_barrios_file <- here::here("jas1_semanas","2019","2019-06-05","barrios_caba","barrios_badata.shp")
+caba_barrios_shape <- st_read(caba_barrios_file)
+buenos_aires_barrios_count <- buenos_aires_barrios_count %>% mutate(barrio=str_to_upper(barrio))
+
+
+
+```
+
+# join barrios con mapa
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+# barrios.geojson
+
+# caba_geojson <- geojson_sf(here::here("jas1_semanas","2019","2019-06-09","barrios.geojson"))
+
+caba_barrios_file <- here::here("jas1_semanas","2019","2019-06-05","barrios_caba","barrios_badata.shp")
+caba_barrios_shape <- st_read(caba_barrios_file)
+buenos_aires_barrios_count <- buenos_aires_barrios_count %>% mutate(barrio=str_to_upper(barrio))
+
+caba_barrios_join <- caba_barrios_shape %>% left_join(buenos_aires_barrios_count, by=c("BARRIO"="barrio"))
+
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# buenos_aires %>%
+#     mutate(barrio=fct_reorder(barrio,precio)) %>%
+#     ggplot(aes(x=barrio,y=precio))+
+#     geom_boxplot()+
+#     coord_flip()
+
+
+
+
+data_plot <- caba_barrios_join %>%
+    st_set_geometry(NULL) %>%
+    # filter(is.na(publicaciones))
+    # filter(publicaciones<1000) %>% 
+    mutate(BARRIO=fct_reorder(BARRIO,precio_medio)) 
+
+resaltar_valores <- data_plot %>% filter(publicaciones>2000 | precio_medio > 3000)
+    
+    # data=subset(mtcars, wt > 4 | mpg > 25),
+    #         aes(wt,mpg,label=name)
+
+plot_outliers_precios <- data_plot %>% 
+    ggplot(aes(x=publicaciones,y=precio_medio,label=BARRIO))+
+    geom_point(alpha=0.5)+
+    geom_point(data=resaltar_valores,alpha=0.5,color="red")+
+    ggrepel::geom_text_repel(data=resaltar_valores, aes(label = BARRIO), 
+                             na.rm = TRUE, hjust = -0.3,vjust=-0.5) +
+    scale_y_continuous(labels=scales::dollar)+
+    coord_flip()+
+    labs(title="#Publicaciones VS Precio medio por Barrio",
+         subtitle="CA. Buenos Aires - Argentina",
+         caption="#DatosdeMieRcoles",
+         x="# publicaciones",y = "Precio Medio ARS")
+   plot_outliers_precios 
+   ggsave(filename = "precios_publicaciones.png",plot = plot_outliers_precios)
+    
+
+```
+
+# mapa 2d
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+# mundo <- ggplot2::map_data("world")
+
+caba_barrios_plot_cant <- ggplot()+
+    geom_sf(data = caba_barrios_join,aes(fill=publicaciones),color=NA)+
+    scale_fill_viridis_c()+
+    labs(title="Publicaciones por Barrio",
+     subtitle="AirBnB - CA. Buenos Aires - Argentina",
+     fill="Publicaciones",caption="#DatosdeMieRcoles")
+
+ggsave(filename = "caba_barrios_plot_cant.png",plot = caba_barrios_plot_cant)
+
+caba_barrios_plot_medio <- ggplot()+
+    geom_sf(data = caba_barrios_join,aes(fill=precio_medio),color=NA)+
+    scale_fill_viridis_c()+
+    labs(title="Precio Medio por Barrio",
+     subtitle="AirBnB - CA. Buenos Aires - Argentina",
+     fill="Precio Medio (ARS)",
+     caption="#DatosdeMieRcoles")
+
+ggsave(filename = "caba_barrios_plot_medio.png",plot = caba_barrios_plot_medio)
+
+caba_barrios_plot_total <- ggplot()+
+    geom_sf(data = caba_barrios_join,aes(fill=precio_total/1000000),color=NA)+
+    scale_fill_viridis_c()+
+    labs(title="Precio Total Acumulado por Barrio",
+     subtitle="AirBnB - CA. Buenos Aires - Argentina",
+     fill="Precio Total Acumulado\n(millones ARS)",
+     caption="#DatosdeMieRcoles")
+
+ggsave(filename = "caba_barrios_plot_total.png",plot = caba_barrios_plot_total)
+
+```
+
+
+# mapa 3d
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# install.packages("rayshader")
+# library(rayshader)
+# devtools::install_github("tylermorganwall/rayshader")
+# library(sf)
+# TODA VIA FALTA D: !
+# https://twitter.com/tylermorganwall/status/1136252215600041984
+# tiene que salir la version nueva de rayshader
+# https://twitter.com/tylermorganwall/status/1057246277006774272
+# https://gist.github.com/tylermorganwall/c62c9793f9c1423af9a8200c09379eec
+
+# asi que para la proxima :/ 
+
+
+
+```
+
+# tweet: 
+
+https://twitter.com/jspairani/status/1137925256428052481
+
+## utilidades: 
+
+sobre el ggplot 3d: 
+
+- https://twitter.com/tylermorganwall/status/1136252215600041984
+- https://twitter.com/tylermorganwall/status/1057246277006774272
+- https://gist.github.com/tylermorganwall/c62c9793f9c1423af9a8200c09379eec 
+
+## data extra: 
+
+- datos barrios: https://data.buenosaires.gob.ar/dataset/barrios
+
+## sobre mapas gis. con caso especifico caba:
+
+- https://bitsandbricks.github.io/ciencia_de_datos_gente_sociable/informacion-geografica-y-mapas.html
