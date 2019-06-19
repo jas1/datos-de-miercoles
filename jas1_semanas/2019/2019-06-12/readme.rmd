@@ -286,3 +286,7 @@ https://twitter.com/jspairani/status/1141186597473398784
 . no hice lo que el tweet de vinos de tidytuesday par ano repetir. 
 . segui jugando con colores y customizar mapas.
 
+- para quitar las lineas de los mapas cuando cambias los colores: 
+
+https://github.com/tidyverse/ggplot2/issues/2071
+
