@@ -1,0 +1,288 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-06-12 vinos !"
+author: "julio"
+date: "16-06-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-06-12 vinos !
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+Vinos!
+
+## Detalles:
+
+- 
+- 
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(geojsonsf)
+library(sf)
+library(rayshader)
+
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+vinos_crudo <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-06-12/vinos.csv")
+vinos <- vinos_crudo %>%  
+    mutate(pais=if_else(pais=="Brazil","Brasil",pais)) %>% 
+    filter(!is.na(pais))
+
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+skimr::skim(vinos)
+```
+
+
+# reseñas
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+
+total_resenias <- vinos %>% 
+    select(pais,vina,precio,puntos) %>% 
+    filter(pais=="Argentina") %>% nrow()
+
+resumen_pais_precio <- vinos %>% 
+    select(pais,vina,precio,puntos) %>% 
+    filter(pais=="Argentina") %>% 
+    group_by(pais,vina) %>%
+    summarise(cantidad_resenias=n(),
+              porc_resenias=cantidad_resenias/total_resenias,
+              precio=sum(precio),
+              puntos=mean(puntos),
+              puntos_max=max(puntos),
+              puntos_min=min(puntos),
+              precio_max=max(precio),
+              precio_min=min(precio))
+
+
+    
+
+vinos_pais_precio <-  vinos %>% 
+    select(pais,vina,precio,puntos) %>% 
+    filter(pais=="Argentina") 
+
+# %>% 
+#     group_by(pais,vina) %>% 
+#     summarise(cantidad_resenias=n(),
+#               precio=sum(precio),
+#               puntos=mean(puntos),
+#               puntos_max=max(puntos),
+#               puntos_max=max(puntos))
+```
+
+# algunas de barras
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+datos_para_plots <- resumen_pais_precio %>%
+    arrange(desc(cantidad_resenias)) %>% 
+    ungroup() %>% 
+    mutate(vina=fct_reorder(vina,cantidad_resenias))
+
+ggplot_2 <- datos_para_plots %>% 
+    head(20) %>% 
+    ggplot(aes(x=vina,y=cantidad_resenias,fill=vina))+
+    geom_col()+
+    coord_flip()+
+    theme(legend.position = "none")+
+    labs(title="Vinos Argentinos por cantidad de reseñas",
+         x="",y="# Reseñas",caption="#DatosdeMieRcoles")
+
+ggsave(filename = "vinos_arg_resenias.png",plot = ggplot_2)
+
+
+# ggplot_3 <- datos_para_plots %>% 
+#     head(20) %>% 
+#     ggplot(aes(x=vina,y=puntos,fill=vina))+
+#     geom_col()+
+#     coord_flip()+
+#     theme(legend.position = "none")+
+#     labs(title="Vinos argentinos por puntuación media",
+#          x="",y="puntuacion media")
+# 
+# ggsave(filename = "vinos_arg_resenias.png",plot = ggplot_3)
+
+ggplot_1 <- datos_para_plots %>%     
+ggplot(aes(x=puntos,y=cantidad_resenias,color=vina))+
+    geom_point(alpha=0.7)+
+    coord_flip()+
+    theme(legend.position = "none")+
+    labs(title="Vinos Argentinos", subtitle="#reseñas vs promedio puntos",
+         x="promedio puntos",y="# Reseñas",caption="#DatosdeMieRcoles")
+
+ggsave(filename = "vinos_arg_resenias_avg_puntos.png",plot = ggplot_1)
+plotly::ggplotly(ggplot_1)
+
+
+```
+
+
+
+# mapa 2d
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+paises_es <- readr::read_delim("paises_es",delim = "\t") %>% 
+    mutate(pais=if_else(pais=="Ukraine","Ucrania",pais)) %>% 
+    mutate(pais=if_else(pais=="Reino Unido","Inglaterra",pais)) #%>% 
+    # mutate(pais=if_else(pais=="Brazil","Brasil",pais))
+
+
+# paises_es %>% filter(str_detect(pais,"Ukr"))
+# paises_es %>% filter(str_detect(pais,"eino"))
+# paises_es %>% filter(str_detect(pais,"Bra"))
+# vinos %>% filter(str_detect(pais,"Bra")) %>% filter(str_detect(pais,"Bra"))
+
+world_data_iso <- maps::iso3166 %>% 
+    filter(!(ISOname %in% c("Clipperton Island","Paracel Islands"))) %>%
+    mutate(mapname=if_else(mapname==fixed("China(?!:Hong Kong|:Macao)"),
+                           "China",
+                           mapname)) %>% 
+    mutate(mapname=if_else(mapname==fixed("UK(?!r)"),
+                           "UK",
+                           mapname))
+
+productores_malbec <- vinos %>% 
+    # filter(variedad=="Malbec") %>% 
+    group_by(pais) %>% 
+    summarise(media_puntuacion=mean(puntos,na.rm = TRUE),
+              total_puntos=sum(puntos,na.rm = TRUE),
+              cantidad=n()) %>% 
+    left_join(paises_es,by=c("pais")) %>% 
+    left_join(world_data_iso,by=c("iso2"="a2")) 
+    
+# vinos %>% filter(is.na(pais))
+    # productores_malbec %>% filter(is.na(pais))
+# productores_malbec %>% count(a3) %>% filter(n>1)
+
+
+
+
+world_sf <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE))
+productores_malbec_mapa_datos <- world_sf %>% 
+    left_join(productores_malbec,by = c("ID"="mapname")) %>% 
+    mutate(puntos_log=log(total_puntos)) %>% 
+        mutate(binify=case_when(puntos_log >= 15 ~ "+15",
+                            puntos_log >= 12.5 & puntos_log < 15 ~ "12.5 - 15",
+                            puntos_log >= 10 & puntos_log < 12.5 ~ "10 - 12.5",
+                            puntos_log >= 7.5 & puntos_log < 10 ~ "7.5 - 10",
+                            puntos_log >= 5 & puntos_log < 7.5 ~ "5 - 7.5",
+                            puntos_log < 5 ~ "< 5")) 
+productores_malbec_mapa_datos$binify <- fct_rev(
+    factor(productores_malbec_mapa_datos$binify,
+           levels = c("+15","12.5 - 15","10 - 12.5","7.5 - 10","5 - 7.5","< 5")))
+
+# productores_malbec %>% anti_join(world_sf,by=c("mapname"="ID"))
+# productores_malbec %>% anti_join(world_sf,by=c("ISOname"="ID"))
+# world_sf %>% filter(ID=="USA")
+# world_sf %>% filter(ID=="China")
+# world_sf %>% filter(ID=="Moldova")
+# world_sf %>% filter(ID=="Macedonia")
+# world_sf %>% filter(ID=="Macedonia")
+#  productores_malbec %>% filter(a3=="CHN") %>% 
+
+# productores_malbec %>% 
+#     ggplot(aes(y=total_puntos/1000))+
+#     geom_boxplot()
+# 
+# productores_malbec %>% 
+#     ggplot(aes(y=total_puntos/1000))+
+#     geom_boxplot()
+
+# productores_malbec %>% anti_join(world_sf,by=c("mapname"="ID"))
+# productores_malbec %>% anti_join(world_sf,by=c("ISOname"="ID"))
+# world_sf %>% filter(ID=="USA")
+# world_sf %>% filter(ID=="China")
+# world_sf %>% filter(ID=="Moldova")
+# world_sf %>% filter(ID=="Macedonia")
+# world_sf %>% filter(ID=="Macedonia")
+#  productores_malbec %>% filter(a3=="CHN") %>% 
+
+productores_malbec %>%
+    ggplot(aes(y=log(total_puntos)))+
+    geom_boxplot()
+
+productores_malbec_mapa <- productores_malbec_mapa_datos %>% 
+    
+    ggplot()+
+    geom_sf(aes(fill=log(total_puntos)),color=NA)+#+
+    # scale_fill_brewer(palette = "YlGnBu",na.value="grey")+
+    # scale_fill_brewer(palette = "PuBu",na.value="grey")+
+    # scale_fill_viridis_d(na.value="grey")+
+    scale_fill_viridis_c()+
+    theme( panel.border = element_blank(),
+      panel.background = element_blank())+
+    labs(title="Quienes producen más vino ?",
+         subtitle="Segun reseñas en: 'WineEnthusiast'",
+         fill="# Puntos Acumulados ( en miles )",
+         caption="#DatosdeMieRcoles")
+
+productores_malbec_mapa
+
+#https://www.color-hex.com/color-palette/79276
+productores_vinos_mapa <- productores_malbec_mapa_datos %>% 
+    
+    ggplot()+
+    geom_sf(aes(fill=binify),color=NA)+#+
+    # scale_fill_brewer(palette = "YlGnBu",na.value="grey")+
+    scale_fill_brewer(palette = "PuRd",na.value="grey")+
+    # scale_fill_viridis_d(na.value="grey")+
+    # scale_fill_viridis_c()+
+    theme( panel.border = element_blank(),
+           # panel.grid.major = element_blank(),
+           panel.grid.major = element_line(colour = 'transparent'),
+           panel.grid.minor = element_blank(),
+           panel.grid =  element_blank(),
+           # panel.background = element_rect(fill = "#c1fdff"))+
+           panel.background = element_rect(fill = "#0a8cb4"))+
+      # panel.background = element_blank(),
+      # plot.background = element_rect(fill = "#BFD5E3"))+
+    labs(title="Quienes producen más vino ?",
+         subtitle="Segun reseñas en: 'WineEnthusiast'",
+         fill="# Puntos Acumulados(Log)",
+         caption="#DatosdeMieRcoles")
+
+productores_vinos_mapa
+ggsave(productores_vinos_mapa,filename = "productores_vinos_mapa.png",width = 10,height = 5)
+
+
+```
+
+
+
+
+# tweet: 
+
+https://twitter.com/jspairani/status/1141186597473398784
+
+
+## utilidades: 
+
+- paleta colores para el azul: https://www.color-hex.com/color-palette/79276
+
+- me base en varias ediciones anteriores para hacer varias cosas: 
+
+. paises en español , cruza para normalizar nombres y mostrar mapa,
+. no hice lo que el tweet de vinos de tidytuesday par ano repetir. 
+. segui jugando con colores y customizar mapas.
+
