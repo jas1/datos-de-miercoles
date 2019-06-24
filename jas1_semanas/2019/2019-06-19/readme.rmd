@@ -1,0 +1,112 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-06-19 legislaciones sobre orientación sexual !"
+author: "julio"
+date: "16-06-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-06-19 legislaciones sobre orientación sexual !
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+legislaciones sobre orientación sexual !
+
+## Detalles:
+
+- ver si hago un mapa con rayshader para volumen.
+- lo de ray shader no esta hast ael martes asi que puedo preparar los datos y cuando salga solo aplicarlo a lo que ya hice.
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(magrittr)
+library(tidyverse)
+library(geojsonsf)
+library(sf)
+library(rayshader)
+
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+leyes <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-06-19/leyes.csv")
+cambios <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-06-19/cambios.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+glimpse(leyes)
+glimpse(cambios)
+
+```
+
+buen , muchos factors
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+skimr::skim(leyes)
+skimr::skim(cambios)
+
+```
+
+mientras pienso que puedo hacer pseudo original con la parte 1. 
+hago la parte 2
+me sale mas facil preguntar hubo cambios ? donde ?
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+datos_de_cambios_plot <- cambios %>% 
+    mutate(hubo_cambio=if_else(datos_2017!=datos_2019,TRUE,FALSE)) %>% 
+    filter(hubo_cambio) %>% 
+    mutate(cambio=paste0(datos_2017,"->",datos_2019)) %>% 
+    mutate(avance_retroceso=case_when(cambio=="ilegal->legal"~1,
+                                      cambio=="legal->ilegal"~-1,
+                                      cambio=="ilegal->de_facto_ilegal"~0,
+                                      cambio=="legal->de_facto_ilegal"~-1,
+                                      cambio=="de_facto_ilegal->ilegal"~0,
+                                      cambio=="de_facto_ilegal->legal"~1
+                                      )) 
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+cambios_plot <- datos_de_cambios_plot %>% 
+    ggplot(aes(x=pais_es,y=cambio,fill=avance_retroceso))+
+    geom_tile()+
+    scale_fill_gradient2(low = "#cc3232",mid = "#e7b416",high = "#99c140")+
+    labs(x="",y="Cambio",caption = "#DatosdeMieRcoles",
+         fill="¿A favor o\n en contra?",
+         title="Paises con cambios para la legalidad\nde relaciones entre parejas del mismo sexo",
+         subtitle="Transición de 2017 a 2019.")+
+    theme_light()
+
+cambios_plot %T>% 
+    print() %T>% 
+    ggsave(plot=.,filename = "semaforo_cambios_plot.png")
+
+```
+
+
+
+
+# tweet: 
+
+2019-06-19 #DatosdeMieRcoles #rstats_ES Desafío legislaciones sobre orientación sexual!
+Esta vez me oriente a ver cambios y como podría mostrarlos. Elegi una paleta de colores a modo semaforo,  https://www.color-hex.com/color-palette/35021 por otro lado aprendí del operador %T>%, lo pueden ver en el post de @andrewheiss https://twitter.com/andrewheiss/status/1141853448591200256 lo explica muy claro.
+
+## utilidades: 
+
+- paleta colores para semáforo: https://www.color-hex.com/color-palette/35021
+
+
