@@ -1,0 +1,159 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-06-26 Meetup Rladies !"
+author: "julio"
+date: "01-07-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-06-26 Meetup Rladies !
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+ Meetup Rladies !
+
+## Detalles:
+
+- ver si se puede decir algo interesante para fomentar a RLadies. 
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(magrittr)
+library(tidyverse)
+library(geojsonsf)
+library(sf)
+library(rayshader)
+
+# install.packages("skimr")
+library(skimr)
+
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# install_packages("readr")
+capitulos_rladies <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-06-26/capitulos_rladies.csv")
+eventos_rladies <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-06-26/eventos_rladies.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+glimpse(capitulos_rladies)
+glimpse(eventos_rladies)
+
+```
+
+buen , muchos factors
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+skimr::skim(capitulos_rladies)
+skimr::skim(eventos_rladies)
+
+```
+capitulo + tiempo + cantidad
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+skimr::skim(capitulos_rladies)
+skimr::skim(eventos_rladies)
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+capitulos_procesado <-  capitulos_rladies %>% 
+    mutate(capitulo=if_else(str_detect(str_to_lower(capitulo),"warsaw"),true = "R-Ladies Warsaw",capitulo)) %>% 
+    mutate(capitulo=str_replace(capitulo,"R-Ladies",""))
+
+eventos_rladies_procesado <-  eventos_rladies %>% 
+    mutate(capitulo=if_else(str_detect(str_to_lower(capitulo),"warsaw"),true = "R-Ladies Warsaw",capitulo)) %>% 
+    mutate(capitulo=str_replace(capitulo,"R-Ladies",""))
+
+eventos_rladies_procesado_join <- eventos_rladies_procesado %>% left_join(capitulos_procesado,by = c("capitulo"="capitulo"))
+
+# eventos_rladies_procesado_join %>% count(pais)
+
+data_error_bars <- eventos_rladies_procesado_join %>% 
+    group_by(capitulo,pais) %>% 
+    summarise(min_fecha=min(fecha_local),
+              mean_fecha=mean(fecha_local),
+              max_fecha=max(fecha_local),
+              total_eventos=n(),
+              total_asistire=sum(respuesta_asistire)) 
+
+
+
+
+
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+rladies_error_bars <- data_error_bars %>% 
+    ungroup() %>% 
+    mutate(capitulo=fct_reorder(capitulo,total_eventos)) %>% 
+    
+    ggplot(aes(x=mean_fecha,y=capitulo,color=pais))+
+        geom_errorbarh(aes(xmin = min_fecha, xmax = max_fecha), 
+                  size = .5, alpha = 0.8) +
+        geom_point(data=eventos_rladies_procesado,aes(x=fecha_local,y = capitulo),size=0.1,color="#663333")+
+    theme_light()+
+    theme(legend.position = "bottom",
+          axis.text.y = element_text(size = 5))+
+    labs(title="Eventos de R-Ladies en el mundo",
+         subtitle="en el tiempo, por capítulo y país",
+         caption="#DatosdeMieRcoles",
+         x="",y="")
+
+rladies_error_bars %T>% 
+    # print() %T>% 
+    ggsave(plot=.,filename = "rladies_error_bars_and_pais.png",width = 5,height = 10)
+
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+rladies_time_line <- eventos_rladies_procesado %>% 
+    ggplot(aes(x=fecha_local,y=respuesta_asistire,color=capitulo))+
+    geom_line()+
+    geom_point()+
+    facet_grid(capitulo~.,scales = "free_y",labeller = label_wrap_gen(width = 16))+
+
+        # geom_point(data=eventos_rladies_procesado,aes(x=fecha_local,y = capitulo),size=0.1,color="#663333")+
+    theme_light()+
+    theme(legend.position = "none",
+          strip.text.y = element_text(angle = 360))+
+    labs(title="Eventos de R-Ladies en el mundo",
+         subtitle="cantidad asistire por evento por capitulo",
+         caption="#DatosdeMieRcoles",
+         x="",y="")
+
+rladies_time_line %T>% 
+    # print() %T>% 
+    ggsave(plot=.,filename = "rladies_time_line.png",width = 10,height = 45)
+
+```
+
+
+# tweet: 
+
+2019-06-26 #DatosdeMieRcoles #rstats_ES Desafío R-Ladies! Tarde pero seguro, 
+me enfoque en ver como evolucionaron los grupos en el tiempo, probe 2 formas de ver los eventos.
+me falto probar con continente en vez de pais.
+
+https://twitter.com/jspairani/status/1146254323292299269
+
+## utilidades: 
+
+- use cosas que habia usado anteriormente.
+
