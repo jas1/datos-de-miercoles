@@ -1,0 +1,257 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-07-03 CRAN Packages !"
+author: "julio"
+date: "08-07-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-07-03 CRAN Packages !
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+ CRAN Packages !
+
+## Detalles:
+
+- 
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(magrittr)
+library(tidyverse)
+library(geojsonsf)
+library(sf)
+library(rayshader)
+
+# install.packages("skimr")
+library(skimr)
+
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# install_packages("readr")
+descargas_R <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-07-03/descargas_R.csv")
+paquetes_cran <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-07-03/paquetes_CRAN.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+glimpse(descargas_R)
+glimpse(paquetes_cran)
+
+```
+
+buen , muchos factors
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+skimr::skim(descargas_R)
+skimr::skim(paquetes_cran)
+
+```
+
+paquete > depende.
+
+de los top paquetes bajados, quienes dependen ?
+
+acotado a paquetes de series temporales:
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+paquetes_series_temporales <- c("ts_packages", "acp", "AER", "anomalize", "ARCensReg", "ArDec", "arfima", "ASSA", "astsa", "autovarCore", "BAYSTAR", "bentcableAR", "BETS", "bfast", "bigtime", "BigVAR", "biwavelet", "BNPTSclust", "boot", "BootPR", "brainwaver", "bspec", "bssm", "bsts", "bundesbank", "BVAR", "bvartools", "CADFtest", "carfima", "carx", "cents", "changepoint", "changepoint.mv", "changepoint.np", "chron", "cointReg", "CommonTrend", "costat", "cts", "dataseries", "DChaos", "dCovTS", "depmix", "depmixS4", "deseasonalize", "dLagM", "dlm", "dlnm", "dsa", "dse", "dtw", "dtwclust", "dygraphs", "dyn", "dynlm", "earlywarnings", "Ecdat", "ecm", "ecp", "EMD", "ensembleBMA", "EvalEst", "events", "expsmooth", "factorstochvol", "fame", "fanplot", "FeedbackTS", "fGarch", "FinTS", "FitAR", "FitARMA", "FKF", "fma", "fNonlinear", "ForeCA", "forecast (core)", "ForecastComb", "forecastHybrid", "forecTheta", "fpp", "fpp2", "fracdiff", "fractal", "fractalrock", "freqdom", "freqdom.fda", "fts", "ftsa", "funtimes", "GAS", "gdpc", "ggdemetra", "ggseas", "ggTimeSeries", "glarma", "GMDH", "gmvarkit", "GNAR", "graphicalVAR", "gsarima", "gtop", "HarmonicRegression", "hht", "hts", "hwwntest", "imputePSF", "imputeTestbench", "imputeTS", "IncDTW", "influxdbr", "InspectChangepoint", "itsmr", "jmotif", "KFAS", "KFKSDS", "kza", "locits", "lomb", "LongMemoryTS", "LPStimeSeries", "ltsa", "lubridate", "mafs", "MAPA", "mAr", "mar1s", "MARSS", "mclcar", "Mcomp", "meboot", "mFilter", "mgm", "mlVAR", "mondate", "mssm", "MSwM", "MTS", "mtsdi", "multDM", "MultipleBubbles", "multitaper", "mvcwt", "mvLSW", "nardl", "nets", "NlinTS", "nlts", "nnfor", "nonlinearTseries", "npst", "NTS", "odpc", "onlineVAR", "opera", "orderedLasso", "otsad", "paleoTS", "partsm", "pastecs", "PCA4TS", "pcdpca", "pdc", "pdfetch", "pear", "perARMA", "pomp", "portes", "prophet", "psd", "PSF", "ptw", "Quandl", "quantspec", "Rbeast", "regspec", "RGENERATE", "RJDemetra", "Rlgt", "Rlibeemd", "rmaf", "RMAWGEN", "robcp", "robets", "robfilter", "robustarima", "roll", "rollRegres", "RSEIS", "Rssa", "RTransferEntropy", "rts", "rucrdtw", "rugarch", "runstats", "rwt", "sae2", "scoringRules", "SDD", "sde", "seas", "season", "seasonal", "seasonalview", "Sim.DiffProc", "sleekts", "smooth", "sparsevar", "spectral", "spectral.methods", "spTimer", "stlplus", "stochvol", "stR", "strucchange", "stsm", "stsm.class", "sugrrants", "surveillance", "svars", "sweep", "sym.arma", "tbrf", "Tcomp", "TED", "tempdisagg", "tframe", "thief", "tibbletime", "Tides", "tiger", "timechange", "timeDate", "TimeProjection", "timesboot", "timeSeries", "timetk", "timsac", "tis", "tpr", "trend", "TSA", "tsbox", "TSclust", "tscount", "TSdbi", "tsdecomp", "tsdisagg2", "TSdist", "tsDyn", "TSEntropies", "tseries (core)", "tseriesChaos", "tseriesEntropy", "tsfa", "tsfeatures", "tsfknn", "tsibble (core)", "tsintermittent", "TSMining", "tsModel", "tsoutliers", "tsPI", "TSrepr", "TSstudio", "TSTutorial", "tswge", "urca", "uroot", "VAR.etp", "vars", "VARsignR", "Wats", "WaveletComp", "wavelets", "waveslim", "wavethresh", "wavScalogram", "WeightedPortTest", "wktmo", "wmtsa", "x12", "x12GUI", "x13binary", "xts", "yuima", "ZIM", "zoo (core)", "ZRA") %>% 
+    str_replace_all(.," \\(core\\)",replacement = "")
+
+ 
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+dependencias_grafo <- paquetes_cran %>% 
+    filter(paquete %in% paquetes_series_temporales) %>% 
+    select(paquete,depende_de) %>% 
+    separate_rows(depende_de,sep = ",") %>% 
+    mutate(depende_de=str_trim(depende_de))
+
+
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(igraph)
+library(visNetwork)
+
+sin_dependencias <- dependencias_grafo %>% filter(is.na(depende_de))
+
+dependencias_grafo_fix <- dependencias_grafo %>% 
+    mutate(depende_de=if_else(str_detect(depende_de,"R\\("),
+                              str_replace(depende_de,"R\\(","R \\("),
+                              depende_de)) %>% 
+    filter(!is.na(depende_de))
+
+nrow(sin_dependencias)
+sin_dependencias <- sin_dependencias %>% filter(!(paquete %in% dependencias_grafo_fix$paquete))
+nrow(sin_dependencias)
+sin_dependencias <- sin_dependencias %>% filter(!(paquete %in% dependencias_grafo_fix$depende_de))
+nrow(sin_dependencias)
+
+grafo_ts <- igraph::graph_from_data_frame(dependencias_grafo_fix)
+
+length(V(grafo_ts))
+
+grafo_ts_2 <- grafo_ts %>% 
+    add_vertices(.,
+                 nv = nrow(sin_dependencias),
+                 attr = list(name=sin_dependencias$paquete))
+
+length(V(grafo_ts_2))
+
+
+V(grafo_ts_2)$size <- 1+degree(grafo_ts_2)
+V(grafo_ts_2)[str_starts(V(grafo_ts_2)$name,"R \\(")]$color <- "green"
+V(grafo_ts_2)[str_starts(V(grafo_ts_2)$name,"R \\(")]$color <- "green"
+
+
+nodo_filtro_name <- "zoo"
+
+condicion_filtro <- str_detect(igraph::V(grafo_ts_2)$name,pattern = nodo_filtro_name)
+vertice <- igraph::V(grafo_ts_2)[condicion_filtro]
+subgrafo_paquetes <- igraph::make_ego_graph(graph = grafo_ts_2, # para el grafo de la red
+                       order=1, # 1 nivel de vecinos
+                       nodes = vertice, # donde el vertice tenga de nombre el selected
+                       mode = "all" )
+
+
+# shape = c("image", "circularImage"),
+#                     image = paste0(path_to_images, 1:4, ".png")
+
+subgrafo_1 <- subgrafo_paquetes[[1]] 
+
+igraph::V(subgrafo_1)$shape <- "image"
+
+# igraph::V(subgrafo_1)$image <- here::here("jas1_semanas","2019","2019-07-03","imagenes","caja.png")
+igraph::V(subgrafo_1)$image <- "https://opengameart.org/sites/default/files/styles/medium/public/crate_0.png"
+
+
+# vertex_attr(igraph::V(subgrafo_1))
+# $
+
+visNetwork::visIgraph(subgrafo_1) %>% 
+    visNetwork::visNodes(shapeProperties = list(useBorderWithImage = TRUE)) %>%
+    # visNetwork::visOptions(highlightNearest = TRUE,width = "100%") %>% 
+    visNetwork::visIgraphLayout(randomSeed = "42",
+                                layout = "layout_with_kk")
+# 
+# visNetwork::visIgraph(subgrafo_paquetes[[2]]) %>% 
+#     visNetwork::visOptions(highlightNearest = TRUE) %>% 
+#     visNetwork::visIgraphLayout(randomSeed = "42",
+#                                 layout = "layout_in_circle")
+# 
+# visNetwork::visIgraph(subgrafo_paquetes[[3]]) %>% 
+#     visNetwork::visOptions(highlightNearest = TRUE) %>% 
+#     visNetwork::visIgraphLayout(randomSeed = "42",
+#                                 layout = "layout_in_circle")
+# %>% shape = "icon"
+    # box-open
+    # visNetwork::visIgraphLayout(randomSeed = "42",
+    #                             layout = "layout_in_circle") %>% 
+        # visNetwork::visIgraphLayout(randomSeed = "42",
+        #                         layout = "layout_with_fr") %>% 
+    # visNetwork::visExport(type = "png", name = "network")
+    # visNetwork::visIgraphLayout(randomSeed = "42",
+    #                             layout = "layout_with_sugiyama")
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+data_frame_paquetes_medida_grafos <- data.frame(nombre=V(grafo_ts_2)$name,
+                                                grado=degree(grafo_ts_2 ),
+                                                intermediacion=betweenness(grafo_ts_2)) %>% 
+    gather(key = metrica,value = valor,-nombre)
+
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+out_1 <- data_frame_paquetes_medida_grafos %>% 
+    filter(metrica=="grado") %>% 
+    count(valor) %>% 
+    ggplot(aes(x=as.factor(valor),y=n))+
+    geom_col()+
+    labs(title="Histograma de Frecuencias de Grado\npara Paquetes CRAN de Series Temporales ",
+     subtitle="del grafo de 'Dependen de'",
+     caption="#DatosdeMieRcoles\nhttps://cran.r-project.org/web/views/TimeSeries.html",
+     x="Grado",y="Frecuencia")
+
+
+data_frame_paquetes_medida_grafos %>% 
+    filter(metrica=="grado") %>% 
+    count(valor) %>% 
+    ggplot(aes(x=as.factor(valor),y=n))+
+    geom_col()+
+    labs(title="Subgrafo de vecinos de orden 1 para paquete zoo\nacotando Paquetes CRAN de Series Temporales ",
+     subtitle="del grafo de 'Dependen de'",
+     caption="#DatosdeMieRcoles\nhttps://cran.r-project.org/web/views/TimeSeries.html",
+     x="Grado",y="Frecuencia")
+
+ggsave(filename = "histograma_freq_grado.png",plot = out_1)
+
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+out_2 <- data_frame_paquetes_medida_grafos %>% 
+    filter(metrica=="intermediacion") %>% 
+    arrange(desc(valor)) %>% 
+    head(20) %>% 
+    mutate(nombre=fct_reorder(nombre,valor)) %>% 
+    ggplot(aes(x=nombre,y=valor,fill=nombre))+
+    geom_col()+
+    coord_flip()+
+    theme(legend.position = "none")+
+
+    labs(title="Top #20 Paquetes CRAN de Series Temporales",
+         subtitle="Intermediación del grafo 'Dependen de'",
+         caption="#DatosdeMieRcoles\nhttps://cran.r-project.org/web/views/TimeSeries.html",
+         x="",y="Intermediación")
+
+ggsave(filename = "top20_intermediacion.png",plot = out_2)
+
+
+```
+
+
+
+```{r}
+dependencias_grafo %>% filter(str_detect(paquete,"zoo"))
+
+dependencias_grafo %>% filter(str_detect(depende_de,"zoo"))
+```
+
+
+
+# tweet: 
+
+2019-07-03 #DatosdeMieRcoles #rstats_ES Desafío paquetes CRAN! 
+Acote los datos a Paquetes de Series temporales según: 
+https://cran.r-project.org/web/views/TimeSeries.html
+
+Los grados de los nodos se focalizan en grado bajo, se observa que hay varios paquetes desconectados en dependencias de Series temporales. vemos que el paquete que mas intermediacion tiene es el paquete zoo. 
+
+por eso hicel el subgrafo para este, porque sino era mucha bolad e alambre :P
+
+https://twitter.com/jspairani/status/1148726464398970880
+
+
+## utilidades: 
+
+- use cosas que habia usado anteriormente.
+
