@@ -1,0 +1,248 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-07-10 Pokemon !"
+author: "julio"
+date: "01-07-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-06-26 Meetup Rladies !
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+ Pokemon !
+
+## Detalles:
+
+- ver alguna progresionde pokemons de la 1ra tanda
+- tal vez aplicar cluster analisis o pca sobre los pokemon
+- tal vez solo animar para que alguno vaya corriendo  via data xD
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(magrittr)
+# install.packages("tidyverse")
+# install.packages("digest")
+library(tidyverse)
+library(geojsonsf)
+library(sf)
+library(rayshader)
+library(gganimate)
+
+# install.packages("skimr")
+library(skimr)
+
+# devtools::install_github("schochastics/Rokemon")
+library(Rokemon)
+# Rokemon::
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+pokemon <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-07-10/pokemon.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+glimpse(pokemon)
+
+
+
+```
+
+buen , muchos factors
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+skimr::skim(pokemon)
+
+
+```
+capitulo + tiempo + cantidad
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+pokemon %>% count(ID_poke,generacion) %>% filter(n>1)
+pokemon %>% count(generacion)
+pokemon %>%  filter(ID_poke==3)
+pokemon %>%  filter(ID_poke==6)
+
+pokemon %>% filter(is.na(nivel_evolucion))
+
+```
+hay muchas cosas, me voy a limitar a los que conozco que son la 1ra generacion . 
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+pokemon_1ra <- pokemon %>% 
+    filter(generacion==1) %>% # 1era gemeracion
+    filter(!str_ends(nombre_ingles," Mega") & 
+           !str_ends(nombre_ingles," Mega X") & 
+           !str_ends(nombre_ingles," Mega Y"))  # que no diga mega al final
+
+
+# pokemon_1ra %>% count(nombre_ingles) %>%  filter(n>1)
+
+
+
+```
+
+
+
+# que tal si hclust ?
+
+
+
+
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# Calculate the Distance
+dist_pokemon_numerico <- dist(pokemon_numerico,method = "euclidean")
+
+# Perform the hierarchical clustering using the complete linkage
+hc_poke_num <- hclust(dist_pokemon_numerico,method="complete")
+
+# cortar arbol
+clust_2 <- cutree(hc_poke_num,k=2)
+
+clust_4 <- cutree(hc_poke_num,k=4)
+
+clust_6 <- cutree(hc_poke_num,k=6)
+
+clust_8 <- cutree(hc_poke_num,k=8)
+
+clust_12 <- cutree(hc_poke_num,k=12)
+
+# plot(hc_poke_num, main = 'Complete Linkage')
+# ggplot(lineup_k2_complete, 
+#        aes(x = x, y = y, color = factor(cluster))) +
+#   geom_point()
+
+dist_pokemon_numerico_clust <- pokemon_numerico %>% 
+    rownames_to_column("id_nombre") %>% 
+    separate(id_nombre,into = c("id","nombre")) %>% 
+    mutate(clust_2 = clust_2) %>% 
+    mutate(clust_4 = clust_4) %>% 
+    mutate(clust_6 = clust_6) %>% 
+    mutate(clust_8 = clust_8) %>% 
+    mutate(clust_12 = clust_12)
+
+dist_pokemon_numerico_clust_largo <-dist_pokemon_numerico_clust %>% 
+    gather(key = metrica,value = valor,-clust_2,-clust_4,-clust_6, -clust_8,-clust_12,-id,-nombre)
+
+```
+
+# plot hclust  2
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+# pokemon_1ra %>%     
+#     select(ID_poke,nombre_ingles,ataque,defensa,fuerza_especial_ataque,fuerza_especial_defensa,puntos_vida,
+#            total,velocidad) %>% 
+#      gather(key = metrica,value = valor,-clust_2,-clust_4,-clust_6, -clust_8,-clust_12,-id,-nombre)
+plot_todos <- dist_pokemon_numerico_clust_largo %>% 
+ggplot(aes(x=metrica,y=valor,fill=as.factor("1")))+
+    geom_boxplot()+
+    coord_flip()+
+        theme(legend.position = "none")+
+    labs(x="",y="",
+         fill="",
+         caption="#DatosdeMieRcoles",
+         title = "Pokemons I Gen",
+         subtitle = "Variabilidad de propiedades")
+
+
+
+plot_hclust_k2 <- dist_pokemon_numerico_clust_largo %>% 
+ggplot(aes(x=metrica,y=valor,fill=as.factor(clust_2)))+
+    geom_boxplot()+
+    coord_flip()+
+    labs(x="",y="",fill="Agrupamiento N=2",
+         caption="#DatosdeMieRcoles",
+         title = "Pokemons I Gen, variabilidad de propiedades,\nAgrupamiento Jerárquico",
+         subtitle = "K: 2, distancia: Euclídea, Metodo: Completo")
+
+plot_hclust_k4 <- dist_pokemon_numerico_clust_largo %>% 
+ggplot(aes(x=metrica,y=valor,fill=as.factor(clust_4)))+
+    geom_boxplot()+
+    coord_flip()+
+    labs(x="",y="",fill="Agrupamiento N=4",
+         caption="#DatosdeMieRcoles",
+         title = "Pokemons I Gen, variabilidad de propiedades,\nAgrupamiento Jerárquico",
+         subtitle = "K: 4, distancia: Euclídea, Metodo: Completo")
+
+plot_hclust_k6 <- dist_pokemon_numerico_clust_largo %>% 
+ggplot(aes(x=metrica,y=valor,fill=as.factor(clust_6)))+
+    geom_boxplot()+
+    coord_flip()+
+    labs(x="",y="",fill="Agrupamiento N=6",
+         caption="#DatosdeMieRcoles",
+         title = "Pokemons I Gen, variabilidad de propiedades,\nAgrupamiento Jerárquico",
+         subtitle = "K: 6, distancia: Euclídea, Metodo: Completo")
+
+
+# dist_pokemon_numerico_clust %>% count(clust_2)
+# dist_pokemon_numerico_clust %>% count(clust_4)
+# dist_pokemon_numerico_clust %>% filter(clust_4 %in% c(3,4))
+# dist_pokemon_numerico_clust %>% count(clust_6)
+
+clusters_distribucion_plot <- dist_pokemon_numerico_clust %>% 
+    gather(key="cluster_k",value="cluster",starts_with("clust_")) %>% 
+    count(cluster_k,cluster) %>% 
+    filter(cluster_k!="clust_8" & cluster_k!="clust_12") %>% 
+    mutate(cluster_k=case_when(cluster_k=="clust_2"~"2 Grupos",
+                               cluster_k=="clust_4"~"4 Grupos",
+                               cluster_k=="clust_6"~"6 Grupos")) %>% 
+    ggplot(aes(x=cluster_k,y=n,fill=as.factor(cluster)))+
+    geom_col()+
+    coord_flip()+
+    labs(x="",y="",fill="Agrupamiento",
+         caption="#DatosdeMieRcoles",
+         title = "Pokemons I Gen,\nAgrupamiento Jerárquico",
+         subtitle = "Distribución de Grupos")
+
+ggsave(filename = "todos_poke.png",plot = plot_todos)
+ggsave(filename = "clust_2.png",plot = plot_hclust_k2)
+ggsave(filename = "clust_4.png",plot = plot_hclust_k4)
+ggsave(filename = "clust_6.png",plot = plot_hclust_k6)
+ggsave(filename = "clusters_distribucion_plot.png",plot = clusters_distribucion_plot)
+plot_doble <- cowplot::plot_grid(plotlist = list(plot_todos,clusters_distribucion_plot))
+ggsave(filename = "todos_distrib.png",plot = plot_doble)
+
+
+```
+
+
+
+
+```{r}
+# knitr::include_graphics("https://github.com/PokeAPI/sprites/blob/master/sprites/pokemon/1.png")
+```
+
+
+# tweet: 
+
+2019-07-10 #DatosdeMieRcoles #rstats_ES Desafío Pokemon! 
+Me enfoqué en ver agrupamientos de forma jerárquica ( clustering jerárquico).
+La distancia fue calculada según las propiedades numéricas de los pokemon.
+
+
+
+
+## comunicar: 
+
+- clustering jerarquico que lo tenia abandonado
+- intento fallido de q uerer usar los graficos de los pokemons, quedara para la prox.
