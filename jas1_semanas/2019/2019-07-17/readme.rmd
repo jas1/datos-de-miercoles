@@ -1,0 +1,199 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-07-17 Copa Mundial de Futbol femenino !"
+author: "julio"
+date: "01-07-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-06-26 Meetup Rladies !
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+ Copa Mundial de Futbol femenino !
+
+## Detalles:
+
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(magrittr)
+# install.packages("tidyverse")
+# install.packages("digest")
+library(tidyverse)
+library(geojsonsf)
+library(sf)
+library(rayshader)
+library(gganimate)
+library(ggrepel)
+
+# install.packages("skimr")
+library(skimr)
+
+# devtools::install_github("schochastics/Rokemon")
+# library(Rokemon)
+# Rokemon::
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+resultados_cmff <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-07-17/resultados_cmff.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+glimpse(resultados_cmff)
+
+```
+
+
+tiene pinta de pais partido año, a revisar mejor
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+skimr::skim(resultados_cmff)
+
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+head(resultados_cmff)
+
+
+```
+ok confirmado , pais, partido, año 
+
+top 10 de mas victorias
+top 10 de mas derrotas
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+top_partidos_resultados <- resultados_cmff %>%  group_by(resultado,codigo_pais) %>% 
+    summarise(cantidad=n(),goles_realizados=sum(goles))
+
+top_partidos_resultados_2 <- resultados_cmff %>% 
+    count(codigo_pais,sort = TRUE) %>% 
+    rename(orden_paises=n) #%>% 
+    # mutate(codigo_pais=fct_reorder(codigo_pais,orden_paises))
+
+data_plot_tops <- top_partidos_resultados %>% 
+    left_join(top_partidos_resultados_2) %>% 
+    mutate(codigo_pais=fct_reorder(codigo_pais,orden_paises)) 
+
+plot_top_participacion <- data_plot_tops %>%
+    # mutate(codigo_pais=fct_reorder2(codigo_pais,resultado,orden_paises)) %>%
+    ungroup() %>% 
+    mutate(resultado=fct_reorder(resultado,orden_paises)) %>% 
+    mutate(codigo_pais=fct_reorder(codigo_pais,orden_paises)) %>% 
+    # filter(resultado=="Victoria") %>% 
+    ggplot(aes(x=codigo_pais,y=cantidad,fill=resultado)) + 
+    geom_col()+
+    theme_light()+
+    coord_flip()+
+    scale_fill_manual(values=list("Victoria"="#a0db8e",
+                                  "Empate"="#ffd3b6",
+                                  "Derrota"="#ff8b94"))+
+    labs(title = "Copas Mundiales de Fútbol Femenino 1991 - 2019",
+         subtitle = "Paises según participación en partidos",
+         caption="#DatosdeMieRcoles",
+         x="",y="# partidos",fill="Resultado")
+
+ggsave(plot=plot_top_participacion,filename = "plot_top_participacion.png",height = 7,width = 5)
+
+```
+
+
+o puedo poner 1 linea que tenga los 2 participantes o puedo armar algo con los partidos ... 
+
+algo como: Que partido fue el de mas diferencia de cada mundial ?
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+dif_goles <- resultados_cmff %>% 
+    mutate(resumen_equipo=paste0(codigo_pais,"(",goles,")")) %>% 
+    group_by(id_partido_anio,anio) %>% 
+    summarise(equipos=paste0(resumen_equipo,collapse = " - "),
+              diferencia_goles=max(goles)-min(goles)) %>% 
+    mutate(id_cruza_dif=paste0(anio,"-",diferencia_goles))
+
+dif_goles_anio <- dif_goles %>% 
+    group_by(anio) %>% 
+    summarise(maxima_diferencia_goles=max(diferencia_goles)) %>% 
+    mutate(id_cruza_dif=paste0(anio,"-",maxima_diferencia_goles))
+
+
+# 
+#               cuantos_anio=n()/2,
+#               diferencia_distribuida=diferencia_goles/cuantos_anio
+dif_goles_plot_data <- dif_goles_anio %>% 
+    left_join(dif_goles)
+
+dif_goles_plot_data_2 <- dif_goles_plot_data %>% 
+    count(id_cruza_dif,anio,diferencia_goles) %>% 
+    rename(cuantos_anio=n) %>% 
+    mutate(diferencia_distribuida=diferencia_goles/cuantos_anio) %>% 
+    select(id_cruza_dif,diferencia_distribuida)
+
+dif_goles_plot_data_3 <- dif_goles_plot_data %>% 
+    left_join(dif_goles_plot_data_2)
+    
+
+dif_goles_plot <- dif_goles_plot_data_3 %>%
+    # mutate(posicion_texto=maxima_diferencia_goles/2) %>%
+    ggplot(aes(x=as.factor(anio),y=diferencia_distribuida,fill=equipos,label=equipos)) + 
+    geom_col()+
+    ggrepel::geom_label_repel(#nudge_y = 5,
+                              position = position_stack(vjust = 0.5),
+                              # nudge_x = 0.5,
+                              #color = "white",
+                              size = 3,
+                              show.legend = FALSE)+
+    theme_light()+
+    coord_flip()+
+    scale_y_continuous(breaks = seq(from=0,to=15,by=1))+
+
+    labs(title = "Copas Mundiales de Fútbol Femenino 1991 - 2019",
+         subtitle = "Máxima diferencia de goles por Mundial",
+         caption="#DatosdeMieRcoles",
+         x="",y="# Cantidad de Goles",fill="Partido")
+
+ggsave(plot=dif_goles_plot,filename = "dif_goles_plot.png",height = 7,width = 9)
+
+```
+
+
+tambien: que paises participaron siempre, quienes dejaron y adoptaron tarde ?
+queda para la proxima
+
+
+```{r}
+# knitr::include_graphics("https://github.com/PokeAPI/sprites/blob/master/sprites/pokemon/1.png")
+```
+
+
+# tweet: 
+
+2019-07-17 #DatosdeMieRcoles #rstats_ES Copa Mundial de Fútbol Femenino! 
+El objetivo fue hacer algo diferente de el challenge de #tidytuesday.
+Revise máxima diferencia de goles y que paises participaron más en el tiempo.
+
+
+https://twitter.com/jspairani/status/1153155127257288704
+
+## comunicar: 
+
+- color palette: https://www.color-hex.com/color-palette/30629
+- para ubicación texto: https://stackoverflow.com/questions/41877645/geom-text-position-middle-on-a-bar-plot
+- para ubicación texto: https://stackoverflow.com/questions/50059193/jitter-text-labels-with-position-stack
