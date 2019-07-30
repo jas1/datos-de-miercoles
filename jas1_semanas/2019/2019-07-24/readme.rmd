@@ -1,0 +1,155 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-07-24 Apps Google Play Store !"
+author: "julio"
+date: "01-07-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-07-24 Apps Google Play Store !
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+2019-07-24 Apps Google Play Store
+
+## Detalles:
+
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(magrittr)
+# install.packages("tidyverse")
+# install.packages("digest")
+library(tidyverse)
+# library(geojsonsf)
+# library(sf)
+# library(rayshader)
+library(gganimate)
+library(ggrepel)
+
+# install.packages("skimr")
+library(skimr)
+
+# devtools::install_github("schochastics/Rokemon")
+# library(Rokemon)
+# Rokemon::
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+apps <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-07-24/apps_googleplaystore.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+glimpse(apps)
+
+```
+
+
+tiene pinta de pais partido año, a revisar mejor
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+skimr::skim(apps)
+
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+head(apps)
+
+
+```
+
+que categoria tiene mas apps, es gratuita / no
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# apps %>% filter(!(tipo %in% c("Gratuita","Pagas") ))
+plot_apps_clasificacion <- apps %>% 
+    filter(tipo %in% c("Gratuita","Pagas") ) %>% 
+    count(clasificacion_contenido,tipo) %>% 
+    mutate(clasificacion_contenido=fct_reorder(clasificacion_contenido,n)) %>% 
+    ggplot(aes(x=clasificacion_contenido,y=n,fill=tipo))+
+    geom_col()+
+    coord_flip()+
+    theme_light()+
+    labs(x="",y="# apps",fill="Tipo",
+         title = "Cantidad de Apps por clasificación contenido",
+         subtitle="En Apps Google Play Store.\n tipo: Gratuita / Paga",
+         caption="#DatosdeMieRcoles")
+ggsave(filename = "clasificacion_contenido_apps.png",plot = plot_apps_clasificacion)
+```
+
+Gratuidad ... o comer tu privacidad o publicidad ?
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# apps %>% filter(!(tipo %in% c("Gratuita","Pagas") ))
+plot_apps_categoria <- apps %>% 
+    filter(tipo %in% c("Gratuita","Pagas") ) %>% 
+    count(categoria,tipo) %>% 
+    mutate(categoria=fct_reorder(categoria,n)) %>% 
+    ggplot(aes(x=categoria,y=n,fill=tipo))+
+    geom_col()+
+    coord_flip()+
+    theme_light()+
+    labs(x="",y="# apps",fill="Tipo",
+         title = "Cantidad de Apps por categoría",
+         subtitle="En Apps Google Play Store.\n tipo: Gratuita / Paga",
+         caption="#DatosdeMieRcoles")
+ggsave(filename = "categoria_apps.png",plot = plot_apps_categoria)
+
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# apps %>% filter(!(tipo %in% c("Gratuita","Pagas") ))
+    
+data_precios <- apps %>% 
+    # filter(precio!=0) %>% 
+    # filter(tipo %in% c("Gratuita","Pagas") ) %>% 
+    group_by(categoria) %>% 
+    summarise(precio_acumulado=log(sum(precio))) 
+
+
+data_precios_plot <- apps %>% 
+    left_join(data_precios,by="categoria") %>% 
+    mutate(categoria=fct_reorder(categoria,precio_acumulado)) 
+    
+    
+plot_apps_categoria_precio <- data_precios_plot %>% 
+    ggplot(aes(x=categoria,y=log(precio),fill=categoria))+
+    geom_boxplot()+
+    coord_flip()+
+    theme_light()+
+    theme(legend.position = "none")+
+    labs(x="",y="precio (logaritmo)",
+         title = "Distribución de precio por categoría",
+         subtitle="En Apps Google Play Store.",
+         caption="#DatosdeMieRcoles")
+ggsave(filename = "boxplot_categoria_apps.png",plot = plot_apps_categoria_precio)
+
+```
+
+# tweet: 
+
+2019-07-24 #DatosdeMieRcoles #rstats_ES Apps Google Play Store! 
+Me focalice en grupos, y precios por grupos.
+
+
+## comunicar: 
+
+simple como para aportar algo :p
