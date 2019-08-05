@@ -1,0 +1,469 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-07-31 La casa de papel !"
+author: "julio"
+date: "01-07-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-07-31 La casa de papel!
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+2019-07-31 La casa de papel!
+
+## Detalles:
+
+importar > topic mining > por temporada / total
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(magrittr)
+library(tidyverse)
+library(ggrepel)
+library(skimr)
+
+library(here)
+library(dplyr)
+library(tidyr)
+library(readxl)
+library(janitor)
+library(stringr)
+library(lubridate)
+library(tm)#; install.packages('tm')
+library(topicmodels)#; install.packages('topicmodels')
+library(rebus)#; install.packages('rebus')
+library(tidytext)
+library(ggplot2)
+library(forcats)
+
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+la_casa_de_papel <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-07-31/la_casa_de_papel.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+glimpse(la_casa_de_papel)
+
+```
+
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+skimr::skim(la_casa_de_papel)
+
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+head(la_casa_de_papel)
+
+
+```
+
+agarrar todos los textos,luego probar por temporada y total
+
+## 1: exploto todas las palabras
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+subconjunto_total_texto_temporada <- la_casa_de_papel %>% 
+    select(texto,temporada)
+
+# exploto en palabras
+palabras_temporada <- subconjunto_total_texto_temporada %>% 
+    unnest_tokens(palabra,texto)
+
+glimpse(palabras_temporada %>% count(palabra,sort = TRUE))
+
+palabras_temporada %>% count(palabra,sort = TRUE)
+```
+
+## 2: lematizacion
+
+esto es para convertir de variaciones de palabras a una palabra , numero o simbplo que la repersente.
+
+aca hay una lista muy copada para varios idiomas: https://github.com/michmech/lemmatization-lists
+
+
+levantamos la fuente: 
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+lematizacion_es <- readr::read_tsv(col_names = c("lema","palabra"),
+                                   file = "https://raw.githubusercontent.com/michmech/lemmatization-lists/master/lemmatization-es.txt")
+```
+
+cruzamos:
+prestar atencion post join, cambio los nombres de palabra a plabra original
+y palabra pasa a ser palabra original o lema, dependiendo si lema viene vacio.
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+lemas_temporada <- palabras_temporada %>% 
+    left_join(lematizacion_es) %>% 
+    mutate(palabra_original=palabra) %>% 
+    mutate(palabra=if_else(is.na(lema),palabra_original,lema))
+glimpse(lemas_temporada)
+glimpse(lemas_temporada %>% count(palabra_original,sort = TRUE))
+
+lemas_temporada %>% count(palabra_original,sort = TRUE)
+```
+
+
+podemos ver que no siempre los lemas son muy copados ... 
+vamos a llevar ese camino en paralelo
+
+sin embargo cuando se tiene que revisar a fondo tenes que ver el listado de palabras y ver que onda que tenga sentido aplicarlos al contexto que lo haces.
+
+ej que vi: mcuho de la casa de papel se concentra en la parte machista/feminista, entonces convertir el/la (o palabras con genero) a una sola pababra mataria esa difrencia
+
+## 3: le saco las palabras que no aportan ( stopwords )
+
+OJO ACA! depende del diccionario de stowpords que uses!
+tambien podes armarte el tuyo, solo tenes que tener un dataframe con la columna de las palabras que te interesa sacar.
+
+aca voy a usar uno preexistente, por temas de tiempo, pero si queres hacerlo mas preciso
+hay que revisar bien que palabras tiene que palabras sacas , y cuales no.
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# stopwords / palabras que no portan valor
+es_stopwords <- data.frame(stringsAsFactors = FALSE,palabra=tm::stopwords("spanish"))
+
+palabras_temporada_sin_stopwords <- palabras_temporada %>% 
+    anti_join(es_stopwords)
+
+glimpse(palabras_temporada_sin_stopwords %>% count(palabra,sort = TRUE))
+
+palabras_temporada_sin_stopwords %>% count(palabra,sort = TRUE)
+
+```
+
+## 3.1 me fijo otros caracteres
+
+los numeros, 
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# stopwords / palabras que no portan valor
+numeros_todo <- palabras_temporada_sin_stopwords %>% 
+    filter(str_detect(palabra,one_or_more(rebus::DGT))) 
+numeros_todo
+```
+
+vemos que traen letras algunos ... opa! m16 , c4 , co2 , g20 ...
+cuales son ?
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# stopwords / palabras que no portan valor
+numeros_palabras <- numeros_todo %>% 
+    filter(str_detect(palabra,one_or_more(rebus::ALPHA))) # de esos, alguno con letras?
+numeros_palabras
+
+```
+parece ser que tienen sentido , esos los deseamos conservar. 
+
+asi que voy a hacer una lista nueva de los numeros que deseo sacar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# stopwords / palabras que no portan valor
+numeros_sacar <- numeros_todo %>% 
+    anti_join(numeros_palabras) # de esos, alguno con letras?
+
+numeros_sacar
+```
+
+finalmente los saco: 
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# stopwords / palabras que no portan valor
+palabras_temporada_sin_stopwords_sin_nros <- palabras_temporada_sin_stopwords %>% 
+    anti_join(numeros_sacar) # de esos, alguno con letras?
+
+glimpse(palabras_temporada_sin_stopwords_sin_nros %>% count(palabra,sort=TRUE))
+palabras_temporada_sin_stopwords_sin_nros %>% count(palabra,sort=TRUE)
+```
+
+finalmente, aplico todo lo de stopwords pero a el conjunto lematizado
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# stopwords / palabras que no portan valor
+lemas_temporada_sin_stopwords <- lemas_temporada %>% 
+    select(palabra,temporada) %>%  # no nos vamos a quedar con origianal
+    anti_join(es_stopwords)
+
+# stopwords / palabras que no portan valor
+numeros_todo_lemas <- lemas_temporada_sin_stopwords %>% 
+    filter(str_detect(palabra,one_or_more(rebus::DGT))) 
+
+# stopwords / palabras que no portan valor
+numeros_palabras_lemas <- numeros_todo_lemas %>% 
+    filter(str_detect(palabra,one_or_more(rebus::ALPHA))) # de esos, alguno con letras?
+
+numeros_sacar_lemas <- numeros_todo_lemas %>% 
+    anti_join(numeros_palabras_lemas) # de esos, alguno con letras?
+
+lemas_temporada_sin_stopwords_sin_nros <- lemas_temporada_sin_stopwords %>% 
+    anti_join(numeros_sacar_lemas)
+lemas_temporada_sin_stopwords_sin_nros %>% count(palabra,sort=TRUE)
+```
+
+
+se puede seguir limpiando , pero por el momento corto aca.
+
+
+## 3.2 reversion luego de ejecuciones de LDA
+
+luego de ejecutar LDA, agrego stopwords personalizadas
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+# "voy" vs "vamos": vemos que aparecen las 2 variantes
+# voy a consevar a voy y vamos.
+stopwords_pers <- data.frame(palabra=c("ahora","aqui","va","ver","voy","vamos","si","eh"),
+                             stringsAsFactors = FALSE)
+
+palabras_temporada_sin_stopwords_sin_nros_sin_pers <- palabras_temporada_sin_stopwords_sin_nros %>% 
+    anti_join(stopwords_pers)
+
+lemas_temporada_sin_stopwords_sin_nros_sin_pers <- lemas_temporada_sin_stopwords_sin_nros %>% 
+    anti_join(stopwords_pers)
+
+
+```
+
+
+## 4: Tópicos !
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+#palabras_temporada_sin_stopwords_sin_nros
+#lemas_temporada_sin_stopwords_sin_nros
+# https://www.tidytextmining.com/topicmodeling.html
+
+# ARMADO DTM PARA LDA / TOPICS --------------------------------------------
+# recordar: document term matrix. 
+# son terminos por documento 
+# o sea: tenes N documentos, con M palabras
+# luego analizando multiples documentos, tenes los topicos
+
+# aca iria mejor todo dividido por temporada-capitulo
+# primero terminar este analisis
+
+lda_custom <- function(contar_datos,
+                       semilla=42,
+                       cantidad_topicos=10,
+                       top_n_nro=5
+                       ){
+    
+    arma_dtm <- contar_datos %>%
+    cast_dtm(temporada,palabra, n)
+    
+    lda_n <- LDA(arma_dtm, k = cantidad_topicos, control = list(seed = semilla))
+    lda_n_tidy <- tidy(lda_n)
+    
+    top_n_topico <- lda_n_tidy %>%
+    group_by(topic) %>%
+    top_n(top_n_nro, beta) %>%
+    ungroup() %>%
+    arrange(topic, -beta)
+    
+    lda_gamma <- tidy(lda_n, matrix = "gamma")
+    # top_palabras_por_topico
+    
+    grafico_top_n <- top_n_topico %>%
+    mutate(term = reorder(term, beta)) %>%
+    ggplot(aes(x=term, y=beta,fill = factor(topic))) +
+    geom_bar(stat = "identity") +
+    theme_light()+
+    facet_wrap(~ topic, scales = "free") +
+    theme(axis.text.x = element_text(size = 15, angle = 90, hjust = 1))
+    
+    resultado <- list("dtm"=arma_dtm,
+                  "lda_n_tidy"=lda_n_tidy,
+                  "lda_n_gamma" =  lda_gamma,
+                  "top_n_topico" = top_n_topico,
+                  "grafico_top_n" = grafico_top_n)
+    resultado
+}
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+
+count_palabras <- palabras_temporada_sin_stopwords_sin_nros %>% count(palabra,temporada)
+count_lemas <- lemas_temporada_sin_stopwords_sin_nros %>% count(palabra,temporada)
+
+lda_palabras <- lda_custom(count_palabras,cantidad_topicos = 5)
+lda_lemas <- lda_custom(count_lemas,cantidad_topicos = 5)
+
+lda_palabras$grafico_top_n
+lda_lemas$grafico_top_n
+
+
+```
+
+buen , no dio muy bien muchas palabras repetidas
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+cont_palabras_pers <- palabras_temporada_sin_stopwords_sin_nros_sin_pers %>% count(palabra,temporada)
+cont_lemas_pers <- lemas_temporada_sin_stopwords_sin_nros_sin_pers %>% count(palabra,temporada)
+
+lda_palabras_pers <- lda_custom(cont_palabras_pers,cantidad_topicos = 5)
+lda_lemas_pers <- lda_custom(cont_lemas_pers,cantidad_topicos = 5)
+
+
+plot1_1 <- lda_palabras_pers$grafico_top_n + labs(title="Primeras 5 palabras de cada tópico sobre palabras",
+                                                  subtitle="ordenadas por probabilidad de ocurrencia en tópico",
+                                                  caption = "#DatosdeMieRcoles",
+                                              x="",y="beta",
+                                              fill="Tópico")+coord_flip()
+plot1_2 <- lda_lemas_pers$grafico_top_n+ labs(title="Primeras 5 palabras de cada tópico sobre lemas", 
+                                              subtitle="ordenadas por probabilidad de ocurrencia en tópico",
+                                              caption = "#DatosdeMieRcoles",
+                                              x="",y="beta",
+                                              fill="Tópico")+coord_flip()
+plot1_1
+plot1_2
+
+# cowplot::plot_grid(plotlist = list(plot1_1,plot1_2))
+
+
+
+ggsave(plot = plot1_1,filename = "ver_top_5_palabras_topico_temporada_plot.png",
+       height = 10,width = 7)
+ggsave(plot = plot1_2,filename = "ver_top_5_palabras_topico_lemas_temporada_plot.png",
+       height = 10,width = 7)
+
+
+```
+
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+cont_palabras_pers <- palabras_temporada_sin_stopwords_sin_nros_sin_pers %>% count(palabra,temporada)
+cont_lemas_pers <- lemas_temporada_sin_stopwords_sin_nros_sin_pers %>% count(palabra,temporada)
+
+lda_palabras_pers_10 <- lda_custom(cont_palabras_pers,cantidad_topicos = 5,top_n_nro = 10)
+lda_lemas_pers_10 <- lda_custom(cont_lemas_pers,cantidad_topicos = 5,top_n_nro = 10)
+
+
+plot1_1_10 <- lda_palabras_pers_10$grafico_top_n + labs(title="Primeras 10 palabras de cada tópico sobre palabras",
+                                                  subtitle="ordenadas por probabilidad de ocurrencia en tópico",
+                                                  caption = "#DatosdeMieRcoles",
+                                              x="",y="beta",
+                                              fill="Tópico")+coord_flip()
+plot1_2_10 <- lda_lemas_pers_10$grafico_top_n+ labs(title="Primeras 10 palabras de cada tópico sobre lemas", 
+                                              subtitle="ordenadas por probabilidad de ocurrencia en tópico",
+                                              caption = "#DatosdeMieRcoles",
+                                              x="",y="beta",
+                                              fill="Tópico")+coord_flip()
+plot1_1_10
+plot1_2_10
+
+# cowplot::plot_grid(plotlist = list(plot1_1,plot1_2))
+
+
+
+ggsave(plot = plot1_1_10,filename = "ver_top_10_palabras_topico_temporada_plot.png",
+       height = 10,width = 7)
+ggsave(plot = plot1_2_10,filename = "ver_top_10_palabras_topico_lemas_temporada_plot.png",
+       height = 10,width = 7)
+
+
+```
+
+```{r}
+threshold_gamma_topicos_lda <- 0.25
+# lda_palabras_pers$lda_n_gamma
+# skimr::skim(lda_palabras_pers$lda_n_gamma)
+# glimpse(palabras_temporada_sin_stopwords_sin_nros_sin_pers)
+
+temporadas_topicos <- palabras_temporada_sin_stopwords_sin_nros_sin_pers %>%  
+    mutate(temporada=as.character(temporada)) %>% 
+    inner_join(lda_palabras_pers$lda_n_gamma,by = c('temporada' = 'document' )) %>% 
+    filter(gamma > threshold_gamma_topicos_lda)
+
+# contar eventos
+# pozos_topicos %>% count(pozo_fecha)
+# documentos_para_tm$descripcion_de_la_operacion_actual
+# glimpse(temporadas_topicos)
+# skimr::skim(temporadas_topicos)
+palabras_topico_temporada_plot <- temporadas_topicos %>% 
+    count(topic,temporada) %>% 
+    mutate(topic=fct_reorder(as.factor(topic),n)) %>% 
+    ggplot(aes(x=topic,y=n,fill=temporada)) + 
+    geom_col()+
+    coord_flip()+
+    theme_light()+
+    labs(title="Cantidad de palabras de tópico por temporada",
+         subtitle="umbral gamma = 0.25 (palabras)",
+         x="Tópico",y="# palabras.",fill="Temporada", 
+         caption="#DatosdeMieRcoles")
+
+ggsave(plot = palabras_topico_temporada_plot,filename = "palabras_topico_temporada_plot.png")
+
+```
+
+
+```{r}
+threshold_gamma_topicos_lda <- 0.25
+# lda_palabras_pers$lda_n_gamma
+# skimr::skim(lda_palabras_pers$lda_n_gamma)
+# glimpse(palabras_temporada_sin_stopwords_sin_nros_sin_pers)
+
+temporadas_topicos_lemas <- lemas_temporada_sin_stopwords_sin_nros_sin_pers %>%  
+    mutate(temporada=as.character(temporada)) %>% 
+    inner_join(lda_palabras_pers$lda_n_gamma,by = c('temporada' = 'document' )) %>% 
+    filter(gamma > threshold_gamma_topicos_lda)
+
+# contar eventos
+# pozos_topicos %>% count(pozo_fecha)
+# documentos_para_tm$descripcion_de_la_operacion_actual
+# glimpse(temporadas_topicos)
+# skimr::skim(temporadas_topicos)
+# ver topicos, por pozo, que topico resalta
+palabras_topico_temporada_lema_plot <- temporadas_topicos_lemas %>% 
+    count(topic,temporada) %>% 
+    mutate(topic=fct_reorder(as.factor(topic),n)) %>% 
+    ggplot(aes(x=topic,y=n,fill=temporada)) + 
+    geom_col()+
+    coord_flip()+
+    theme_light()+
+    labs(title="Cantidad de palabras de tópico por temporada",
+         subtitle="umbral gamma = 0.25 (lematizado)",
+         x="Tópico",y="# palabras.",fill="Palabras", 
+         caption="#DatosdeMieRcoles")
+
+ggsave(plot = palabras_topico_temporada_lema_plot,filename = "lemas_topico_temporada_plot.png")
+
+```
+
+# tweet: 
+
+2019-07-31 #DatosdeMieRcoles #rstats_ES La casa de papel! Apunte a busqueda de topicos por temporada.
+en las 1ras 5 palabras, luego e pueden ver las 1ras 10. finalmente como estos topicos se repartieron en las 3 temporadas. Está interesante para trabajarlo más.
+
+
+## comunicar: 
+
+- recurso lematizado: 
+aca hay una lista muy copada para varios idiomas: https://github.com/michmech/lemmatization-lists
+
+
+- recurso textmining: 
+
+https://www.tidytextmining.com/topicmodeling.html
+
+- recurso diccionario stopwords: 
+
+uso el paquete tm: tm::stopwords("spanish")
