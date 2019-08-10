@@ -1,0 +1,217 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-08-07 Reporte Mundial de Felicidad !"
+author: "julio"
+date: "01-07-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-08-07 Reporte Mundial de Felicidad!
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+probar nuevo ggforce
+
+## Detalles:
+
+pca con ggforce y recipes
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(magrittr)
+library(tidyverse)
+library(ggrepel)
+library(skimr)
+
+library(here)
+library(dplyr)
+library(tidyr)
+library(readxl)
+library(janitor)
+library(stringr)
+library(lubridate)
+
+library(recipes) # install.packages('recipes')
+library(ggforce) # install.packages('ggforce')
+library(FactoMineR)
+
+
+# library(tm)#; install.packages('tm')
+# library(topicmodels)#; install.packages('topicmodels')
+# library(rebus)#; install.packages('rebus')
+# library(tidytext)
+# library(ggplot2)
+# library(forcats)
+
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+felicidad <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-08-07/felicidad.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+glimpse(felicidad)
+
+```
+
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+skimr::skim(felicidad)
+
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+head(felicidad)
+
+
+```
+
+agarrar todos los textos,luego probar por temporada y total
+
+## 1: pca ggforce
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+anio_analisis <- "2010"
+
+limpieaza_datos_para_pca <- felicidad %>% 
+    mutate(pais_anio=paste0(pais,"|",anio)) %>% 
+    filter(pais!="Nigeria") %>% # nigeria tiene repetidos asi que la saco 
+    select(-pais,-anio,-starts_with("gini_")) # omito columnas que no aportan. y que tienen NA's
+
+# nigeria tiene repetidos asi que la saco
+# datos_para_pca %>% count(pais_anio) %>% filter(n>1)
+
+
+datos_para_pca <- limpieaza_datos_para_pca %>%   
+      filter(complete.cases(limpieaza_datos_para_pca)) %>%  # filtro NA's , en 2 pasos porque necesito sacar columnas
+      filter(str_detect(pais_anio,anio_analisis)) %>%  # para 1 año
+      column_to_rownames(var = "pais_anio")
+        
+
+                            
+# skimr::skim(datos_para_pca)
+
+# resultado_pca <- 
+#   recipe(~ .,data=datos_para_pca) %>% 
+#   step_center(all_predictors()) %>% 
+#   step_scale(all_predictors()) %>%
+#   step_pca(all_predictors(), num_comp = 5) %>% 
+#   prep() %>% 
+#   juice()
+
+
+resltado_pca <- PCA(datos_para_pca)
+
+
+colores_13 <- c(RColorBrewer::brewer.pal(12,"Paired"),"#fffb3f")
+
+composicion_componentes <- resltado_pca$var$contrib %>% 
+    as.data.frame() %>% 
+    rownames_to_column("variable") %>% 
+    gather(key = componente,value=valor,-variable) %>% 
+    mutate(componente=str_replace(componente,"Dim.","")) %>% 
+    mutate(componente=str_pad(componente,width = 2,pad = 0)) %>% 
+    mutate(componente=paste0("PC ",componente)) %>% 
+    ggplot(aes(x=componente,y = valor,fill=variable))+
+    geom_col()+
+    scale_fill_manual(values = colores_13)+
+    theme_light()+
+    # scale_y_continuous(labels =  scales::percent_format(scale = 1))+
+    labs(title=paste0("Composición de los componentes principales para año ",anio_analisis),
+         subtitle="se realizaron pre filtros.",
+         caption="#DatosdeMieRcoles",x="",y="")
+
+
+ggsave(plot=composicion_componentes,filename = "composicion_componentes.png")
+
+varianza_data <-  resltado_pca$eig %>% 
+    as.data.frame() %>% 
+    rownames_to_column("variable") %>% 
+    gather(key = estadistico,value=valor,-variable) %>% 
+    mutate(variable=str_replace(variable,"comp ","")) %>% 
+    mutate(variable=str_pad(variable,width = 2,pad = 0)) %>% 
+    # mutate(variable=paste0("PC ",variable)) %>% 
+    filter(estadistico!="eigenvalue") %>% 
+    mutate(estadistico=if_else(estadistico=="percentage of variance",
+                               "porcentaje de varianza",
+                               "porcentaje acumulado de varianza"))
+
+
+varianza_secuencia <- seq(from=1,#desde
+                          to=varianza_data %>% distinct(variable) %>% pull(variable) %>% length(),# hasta
+                          1)# de a cuanto salta
+
+varianza_componentes <-varianza_data %>% 
+    ggplot(aes(x=as.integer(variable),
+               y = valor,color=estadistico))+
+    geom_line()+
+    geom_point()+
+    scale_x_continuous(breaks = varianza_secuencia ,labels = paste0("PC ",varianza_secuencia))+
+    theme_light()+
+    theme(axis.text.x = element_text(angle=90))+
+    # scale_y_continuous(labels =  scales::percent_format(scale = 1))+
+    labs(title=paste0("Varianza componentes principales para año " ,anio_analisis),
+         subtitle="se realizaron pre filtros.",
+         caption="#DatosdeMieRcoles",x="",y="")
+
+ggsave(plot=varianza_componentes,filename = "varianza_componentes.png")
+
+plot_ggforce <- resltado_pca$ind$coord %>% 
+     as.data.frame() %>% 
+    rownames_to_column("pais_anio") %>% 
+
+    gather(componente,valor,-pais_anio) %>% 
+    
+    mutate(componente=str_replace(componente,"Dim.","")) %>% 
+    mutate(componente=str_pad(componente,width = 2,pad = 0)) %>% 
+    mutate(componente=paste0("PC ",componente)) %>% 
+    spread(key = componente,value = valor) %>% 
+    select(-pais_anio) %>% 
+    ggplot(aes(x = .panel_x, y = .panel_y)) + 
+  geom_point(alpha = 0.2, shape = 16, size = 0.5) + 
+  geom_autodensity() +
+  geom_density2d() +
+    theme_light()+
+  facet_matrix(vars(everything()), layer.diag = 2, layer.upper = 3, 
+               grid.y.diag = FALSE)+
+    labs(title=paste0("Análisis de componentes Principales para año " ,anio_analisis),
+         subtitle="se realizaron pre filtros.",
+         caption="#DatosdeMieRcoles")
+ggsave(plot=plot_ggforce,filename = "plot_ggforce.png")
+
+plotly::ggplotly(plot_ggforce)
+```
+
+# tweet: 
+
+2019-08-07 #DatosdeMieRcoles #rstats_ES Felicidad ! quise probar ggforce y recipes. segui PCA. 1ras 3 componentes se tiene mas aporte. PC1 esta balanceado, PC2 resalta confianza y escalera pais anio. PC3 afecto positivo.
+
+## comunicar: 
+
+- gg force:
+https://www.data-imaginist.com/2019/a-flurry-of-facets/
+
+- colores: 
+http://repec.sowi.unibe.ch/stata/palettes/colors.html
+
+- PCA
+http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/112-pca-principal-component-analysis-essentials/
