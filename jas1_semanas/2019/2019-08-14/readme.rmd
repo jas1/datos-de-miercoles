@@ -1,0 +1,300 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-08-14  Índice de Libertad !"
+author: "julio"
+date: "01-07-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-08-14  Índice de Libertad !
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+Indice de libertad humana. 
+ 
+ 
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(magrittr)
+library(tidyverse)
+library(ggrepel)
+library(skimr)
+
+library(here)
+library(dplyr)
+library(tidyr)
+library(readxl)
+library(janitor)
+library(stringr)
+library(lubridate)
+
+# library(recipes) # install.packages('recipes')
+# library(ggforce) # install.packages('ggforce')
+# library(FactoMineR)
+
+
+# library(tm)#; install.packages('tm')
+# library(topicmodels)#; install.packages('topicmodels')
+# library(rebus)#; install.packages('rebus')
+# library(tidytext)
+# library(ggplot2)
+# library(forcats)
+
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+libertad <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-08-14/libertad.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+glimpse(libertad)
+
+```
+
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+skimr::skim(libertad)
+
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+head(libertad)
+
+
+```
+
+vemos que hay , muchos por region pais y codigo. 
+luego que hay puntajes y rankings. 
+
+el ranking que salga solo , asi que nos vamos a basar en los puntajes. 
+
+
+
+## 1: procesamiento 
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+libertad_procesada <- libertad %>% select(pais, region, codigo_iso, anio, 
+                                          libertad_economica_puntaje,
+                                          libertad_humana_puntaje,
+                                          libertad_personal_puntaje) 
+
+libertad_procesada_region <- libertad_procesada %>% 
+    group_by(anio,region) %>% 
+    summarise(libertad_economica_puntaje_region_total=sum(libertad_economica_puntaje,na.rm = TRUE),
+              libertad_humana_puntaje_region_total=sum(libertad_humana_puntaje,na.rm = TRUE),
+              libertad_personal_puntaje_region_total=sum(libertad_personal_puntaje,na.rm = TRUE),
+              libertad_economica_puntaje_region_media=mean(libertad_economica_puntaje,na.rm = TRUE),
+              libertad_humana_puntaje_region_media=mean(libertad_humana_puntaje,na.rm = TRUE),
+              libertad_personal_puntaje_region_media=mean(libertad_personal_puntaje,na.rm = TRUE),
+              libertad_economica_puntaje_region_mediana=median(libertad_economica_puntaje,na.rm = TRUE),
+              libertad_humana_puntaje_region_mediana=median(libertad_humana_puntaje,na.rm = TRUE),
+              libertad_personal_puntaje_region_mediana=median(libertad_personal_puntaje,na.rm = TRUE),
+              libertad_economica_puntaje_region_n=sum(!is.na(libertad_economica_puntaje)),
+              libertad_humana_puntaje_region_n=sum(!is.na(libertad_humana_puntaje)),
+              libertad_personal_puntaje_region_n=sum(!is.na(libertad_personal_puntaje))
+              )
+
+
+libertad_procesada_gather <- libertad_procesada %>%  gather(libertad,puntaje,-pais, -region, -codigo_iso, -anio)
+
+libertad_procesada_gather_region <- libertad_procesada_region %>%  
+    gather(libertad,puntaje, -region, -anio)
+```
+
+
+una vez que tenemos los puntajes podemos hacer el scatter 3D. 
+
+```{r}
+libertad_total <- libertad_procesada_gather_region %>% 
+    mutate(libertad=str_replace_all(libertad,"_","\n")) %>% 
+    mutate(libertad=str_replace_all(libertad,"region","región")) %>% 
+    mutate(libertad=str_replace_all(libertad,"economica","económica")) %>% 
+    filter(str_detect(libertad,"total")) %>% 
+ggplot(aes(x=anio,y = puntaje,color=region))+
+    geom_line()+
+    theme(#legend.position = "none",
+          strip.text.y = element_text(angle = 360))+
+    facet_grid(libertad~.)+
+    labs(x="",y="",color="región",
+         #y="puntaje acumulado region ",
+         title="Evolución de Indices de libertad en Regiones",
+         subtitle = "Puntaje acumulado por región ( omite NA's )",
+         caption="#DatosdeMieRcoles")
+
+ggsave(filename = "libertad_total.png",plot = libertad_total,height = 7,width = 9)
+```
+
+```{r}
+libertad_media <- libertad_procesada_gather_region %>% 
+    mutate(libertad=str_replace_all(libertad,"_","\n")) %>% 
+    mutate(libertad=str_replace_all(libertad,"region","región")) %>% 
+    mutate(libertad=str_replace_all(libertad,"economica","económica")) %>% 
+    filter(str_detect(libertad,"media") & !str_detect(libertad,"mediana")) %>% 
+ggplot(aes(x=anio,y = puntaje,color=region))+
+    geom_line()+
+    theme(#legend.position = "none",
+          strip.text.y = element_text(angle = 360))+
+    facet_grid(libertad~.)+
+    labs(x="",y="",color="región",
+         #y="puntaje acumulado region ",
+         title="Evolución de Indices de libertad en Regiones",
+         subtitle = "Puntaje medio por región ( omite NA's )",
+         caption="#DatosdeMieRcoles")
+ggsave(filename = "libertad_media.png",plot = libertad_media,height = 7,width = 9)
+
+```
+
+```{r}
+
+libertad_mediana <- libertad_procesada_gather_region %>% 
+    mutate(libertad=str_replace_all(libertad,"_","\n")) %>% 
+    mutate(libertad=str_replace_all(libertad,"region","región")) %>% 
+    mutate(libertad=str_replace_all(libertad,"economica","económica")) %>% 
+    filter(str_detect(libertad,"mediana")) %>% 
+ggplot(aes(x=anio,y = puntaje,color=region))+
+    geom_line()+
+    theme(#legend.position = "none",
+          strip.text.y = element_text(angle = 360))+
+    facet_grid(libertad~.)+
+    labs(x="",y="",color="región",
+         #y="puntaje acumulado region ",
+         title="Evolución de Indices de libertad en Regiones",
+         subtitle = "Mediana del puntaje por región ( omite NA's )",
+         caption="#DatosdeMieRcoles")
+ggsave(filename = "libertad_mediana.png",plot = libertad_mediana,height = 7,width = 9)
+
+```
+```{r}
+libertad_cant_paises <- libertad_procesada_gather_region %>% 
+    filter(str_detect(libertad,fixed("region_n"))) %>% 
+    mutate(libertad=str_replace_all(libertad,"_","\n")) %>% 
+    mutate(libertad=str_replace_all(libertad,"region","región")) %>% 
+    mutate(libertad=str_replace_all(libertad,"economica","económica")) %>% 
+ggplot(aes(x=anio,y = puntaje,color=region))+
+    geom_line(alpha=0.7)+
+    theme(#legend.position = "none",
+          strip.text.y = element_text(angle = 360))+
+    facet_grid(libertad~.)+
+    labs(x="",y="",color="región",
+         #y="puntaje acumulado region ",
+         title="Evolución de participantes en indices de libertad en Regiones",
+         subtitle = "Cantidad de puntajes sin NA por región",
+         caption="#DatosdeMieRcoles")
+
+ggsave(filename = "libertad_cant_paises.png",plot = libertad_cant_paises,height = 7,width = 9)
+```
+
+```{r}
+
+es_outlier <- function(x) {
+  return(x < quantile(x, 0.25,na.rm = TRUE) - 1.5 * IQR(x,na.rm = TRUE) | x > quantile(x, 0.75,na.rm = TRUE) + 1.5 * IQR(x,na.rm = TRUE))
+}
+
+animacion_data <- libertad_procesada_gather %>% 
+    mutate(region_anio_libertad=paste0(region,"_",anio,"_",libertad)) %>% # var temporal
+    nest(-region_anio_libertad) %>%  # colapsame todo menos region anio
+    mutate(region_data=purrr::map(data,.f=function(data){ 
+        # aplica busca outliers por region anio y tipo libertad
+        ret <- data %>%  mutate(es_outlier=es_outlier(puntaje))
+        ret
+    })) %>% 
+    unnest(region_data) %>% # descolapsa
+    select(-region_anio_libertad) %>%  # sacame la columna temporal region anio.
+    mutate(libertad=str_replace_all(libertad,"_","\n")) %>% 
+    mutate(libertad=str_replace_all(libertad,"region","región")) %>% 
+    mutate(libertad=str_replace_all(libertad,"economica","económica"))
+    
+
+animacion_plot <- animacion_data %>% 
+ggplot(aes(x=region,y = puntaje,fill=region))+
+    geom_boxplot()+
+    theme(#legend.position = "none",
+          strip.text.y = element_text(angle = 360))+
+    ggrepel::geom_label_repel(
+        data = subset(animacion_data, es_outlier),
+        aes(label=pais),
+        # hjust=-0.3,
+        # nudge_y = 0.3,
+        segment.size = 0.2
+        # nudge_x      = 0.1,
+        # nudge_x      = -0.35,
+
+    )+
+    coord_flip()+
+    facet_grid(libertad~.)+
+    labs(x="",y="",color="región",
+         #y="puntaje acumulado region ",
+         title="Evolución de Indices de libertad en Regiones",
+         subtitle = "Año: {frame_time}",
+         # subtitle= "Año: {closest_state}",
+         caption="#DatosdeMieRcoles")+
+      gganimate::transition_time(anio)
+    # gganimate::transition_time(as.factor(anio))
+       # gganimate::transition_states(as.factor(anio),
+       #              transition_length = 1,
+       #              state_length =8)
+# library(gganimate)
+# install.packages("tweenr")
+# install.packages("gganimate")
+# anim_save(filename ="animacion_boxts_2.gif",width = 1000, height = 1000)
+# animacion_plot
+
+animate(animacion_plot, height = 1000, width =1000)
+anim_save("animacion_boxts_3.gif")
+
+```
+
+
+```{r}
+
+libertad_procesada_gather %>% 
+    mutate(libertad=str_replace_all(libertad,"_","\n")) %>% 
+    mutate(libertad=str_replace_all(libertad,"region","región")) %>% 
+    mutate(libertad=str_replace_all(libertad,"economica","económica")) %>% 
+    
+ggplot(aes(x=region,y = puntaje,fill=region))+
+    geom_boxplot()+
+    theme(#legend.position = "none",
+          strip.text.y = element_text(angle = 360))+
+    coord_flip()+
+    facet_grid(libertad~.)+
+    labs(x="",y="",color="región",
+         #y="puntaje acumulado region ",
+         title="Evolución de Indices de libertad en Regiones Año: {frame_time}",
+         subtitle = "Puntaje medio por región ( omite NA's )",
+         caption="#DatosdeMieRcoles")+
+      gganimate::transition_time(anio)
+```
+
+# tweet: 
+
+2019-08-14 #DatosdeMieRcoles #rstats_ES Índice de Libertad ! 
+diferentes puntos de vista sobre las medidas en el tiempo. 
+y de yapa animación para ver la variabilidad en boxplots que son medias experimentales :p 
+
+
+## comunicar: 
+
+usadas herramientas de previos desafios.
