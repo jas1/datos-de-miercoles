@@ -293,7 +293,7 @@ ggplot(aes(x=region,y = puntaje,fill=region))+
 2019-08-14 #DatosdeMieRcoles #rstats_ES Índice de Libertad ! 
 diferentes puntos de vista sobre las medidas en el tiempo. 
 y de yapa animación para ver la variabilidad en boxplots que son medias experimentales :p 
-
+https://github.com/jas1/datos-de-miercoles/tree/master/jas1_semanas/2019/2019-08-14
 
 ## comunicar: 
 

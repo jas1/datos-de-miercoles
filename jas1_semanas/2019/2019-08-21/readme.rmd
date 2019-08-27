@@ -1,0 +1,269 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-08-21 emisiones de CO2 !"
+author: "julio"
+date: "01-07-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-08-21 emisiones de CO2 !
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+emisiones de CO2
+
+probar hacer lo de los path con scatter plot. simil: 
+https://twitter.com/thefercook/status/1164115851450232832
+ 
+ 
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# library(magrittr)
+library(tidyverse)
+# library(ggrepel)
+library(skimr)
+
+library(here)
+# library(dplyr)
+# library(tidyr)
+# library(readxl)
+# library(janitor)
+# library(stringr)
+# library(lubridate)
+library(sf)# install.packages('sf')
+library(transformr)# install.packages('transformr')
+library(gganimate)# install.packages('gganimate')
+# library(recipes) # install.packages('recipes')
+# library(ggforce) # install.packages('ggforce')
+# library(FactoMineR)
+
+
+# library(tm)#; install.packages('tm')
+# library(topicmodels)#; install.packages('topicmodels')
+# library(rebus)#; install.packages('rebus')
+# library(tidytext)
+# library(ggplot2)
+# library(forcats)
+
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# install_packages("readr")
+co2 <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-08-21/co2.csv")
+
+
+co2_ingreso <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-08-21/co2_ingreso.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+glimpse(co2)
+glimpse(co2_ingreso)
+```
+
+antes de seguir analizando vamos a juntar los 2 datasets.
+tienen en comun anio y codigo iso.
+
+para juntarlos de forma facil nos vamos a inventar un identificador , con estos campos en ambos datasets y luego juntar por ellos
+
+para luego si seguir con el exploratorio
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+co2_2 <- co2 %>% 
+    mutate(anio_codigo_iso=paste0(anio,";",codigo_iso)) %>% #invento identificador
+    select(-anio,-codigo_iso) # saco asi no se repiten los campos
+
+co2_ingreso_2 <- co2_ingreso %>% 
+    mutate(anio_codigo_iso=paste0(anio,";",codigo_iso)) %>%  #invento identificador
+    select(-anio,-codigo_iso)# saco asi no se repiten los campos
+
+co2_total <- co2_2 %>% 
+    left_join(co2_ingreso_2,
+              by=c("anio_codigo_iso"="anio_codigo_iso")) %>% # junto todo por si hay null de algun lado
+    separate(col=anio_codigo_iso,into=c("anio","codigo_iso"),sep=";") # vuelvo a generar anio y codigo
+
+
+```
+meh ... solo agrega region ... 
+creo que hay que ver mejor que onda ... 
+
+igual lo voy a dejar aca, me voya focalizar en latinoamerica y hacer lo que pensaba hacer sino me desviruto con creces.
+
+asi que aca lo dejo , voy a ir solo por el que tiene 2 variables.
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+skimr::skim(co2_ingreso)
+
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+head(co2_ingreso)
+
+
+```
+
+
+## 1: procesamiento 
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+data_para_grafico <- co2_ingreso
+
+data_para_grafico %>% 
+    ggplot(aes(x=grupo,y=emision_co2,color=grupo,label=anio))+
+    geom_point()+
+        geom_line()+
+    geom_text()
+```
+
+Vemos que esto no va a ir a buen camino si no ponemos otras variables, por suerte tenemos otros dataset que ya usamos que nos pueden servir, como algo que tenga poblacion. 
+
+buen no no est alod e poblacion y no veo otro que me pueda servir tal cual asi que voy a optar por otro grafico.
+
+
+
+```{r,warning=FALSE }
+data_para_grafico <- co2_ingreso
+
+line_plot_emisiones <- data_para_grafico %>% 
+    ggplot(aes(x=anio,y=emision_co2,color=grupo))+
+    # geom_point()+
+    geom_line()+
+    scale_x_continuous(breaks = seq(from=1955,to=2015,by=5))+
+    facet_grid(grupo~.,scales = "free_y")+
+    theme_light()+
+    theme(legend.position = "none",
+          axis.text.x = element_text(angle=90),
+          strip.text.y = element_text(angle = 360))+
+    labs(x="",y="",caption="#DatosdeMieRcoles",
+         title="Emisión de CO2 por grupos de ingreso\nexpresado en toneladas métricas per cápita",
+         subtitle = "desde 1960 hasta 2014")
+    # geom_text()
+
+ggsave(filename = "line_plot_emisiones.png",plot = line_plot_emisiones,height = 7,width = 9)
+```
+
+
+# intento de mapa animado
+
+```{r,warning=FALSE }
+
+paises_es <- readr::read_delim("paises_es",delim = "\t") %>% 
+    mutate(pais=if_else(pais=="Ukraine","Ucrania",pais)) %>% 
+    mutate(pais=if_else(pais=="Reino Unido","Inglaterra",pais))
+
+world_data_iso <- maps::iso3166 %>% 
+    filter(!(ISOname %in% c("Clipperton Island","Paracel Islands"))) %>%
+    mutate(mapname=if_else(mapname==fixed("China(?!:Hong Kong|:Macao)"),
+                           "China",
+                           mapname)) %>% 
+    mutate(mapname=if_else(mapname==fixed("UK(?!r)"),
+                           "UK",
+                           mapname)) %>% 
+    left_join(co2,by = c("a3"="codigo_iso"))
+world_sf <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE))
+
+mapa_co2 <- world_sf %>% 
+    left_join(world_data_iso,by = c("ID"="mapname"))
+    
+# 0.23    0.88    1.86    3.51   12.04
+
+mapa_co2_para_plot <- mapa_co2 %>% 
+    # mutate(puntos_log=log(total_puntos)) %>% 
+        mutate(bins_emision_co2=case_when(emision_co2 >= 10 ~ "+12",
+                            emision_co2 >= 7 & emision_co2 < 10 ~ "7 - 10",
+                            emision_co2 >= 5 & emision_co2 < 7 ~ "5 - 7",
+                            emision_co2 >= 3 & emision_co2 < 5 ~ "3 - 5",
+                            emision_co2 >= 1 & emision_co2 < 3 ~ "1 - 3",
+                            emision_co2 < 1 ~ "< 1")) 
+
+mapa_co2_para_plot$bins_emision_co2 <- fct_rev(
+    factor(mapa_co2_para_plot$bins_emision_co2,
+           levels = c("+12","7 - 10","5 - 7","3 - 5","1 - 3","< 1")))
+```
+
+
+```{r,warning=FALSE }
+
+# mapa_co2_para_plot %>% skimr::skim()
+anios_acotados <- c(seq(from=1960,to=2010,by=10),2014)
+plot_out <- mapa_co2_para_plot %>% 
+    # filter(anio==1980) %>%
+    filter(anio%in%anios_acotados) %>%
+    filter(!is.na(anio)) %>% 
+    ggplot()+
+    geom_sf(aes(fill=bins_emision_co2),color=NA)+#+
+    # scale_fill_brewer(palette = "YlGnBu",na.value="grey")+
+    # scale_fill_brewer(palette = "Purples",na.value="grey")+
+    
+    scale_fill_manual(values=c("#b0b6bf","#bdbcbc", "#8b9094", "#828483","#565656","#7a6b6b","#453b3c"),
+                      na.value="white")+
+    # https://www.color-hex.com/color-palette/21688
+    # Color 	Hex 	RGB
+	#b0b6bf 	(176,182,191)
+    # #bdbcbc https://www.color-hex.com/color-palette/4452
+	#8b9094 	(139,144,148)
+	#828483 	(130,132,131)
+	#565656 	(86,86,86)
+    ##7a6b6b # https://www.color-hex.com/color-palette/4414
+	#453b3c 	(69,59,60)
+    
+    # scale_fill_viridis_d(na.value="grey")+
+    # scale_fill_viridis_c()+
+    theme( panel.border = element_blank(),
+           # panel.grid.major = element_blank(),
+           panel.grid.major = element_line(colour = 'transparent'),
+           panel.grid.minor = element_blank(),
+           panel.grid =  element_blank(),
+           # panel.background = element_rect(fill = "#c1fdff"))+
+           panel.background = element_rect(fill = "#96aeba"))+ 
+      # https://www.color-hex.com/color-palette/21690
+      # panel.background = element_blank(),
+      # plot.background = element_rect(fill = "#BFD5E3"))+
+    labs(title="Quienes producen más CO2 en el tiempo",
+         subtitle = "Año: {closest_state} ",
+         fill="Ton. métricas per cápita",
+         caption="#DatosdeMieRcoles")+
+    # gganimate::transition_time(anio)
+    gganimate::transition_states(anio)
+
+gganimate::animate(plot_out, height = 500, width =1000)
+gganimate::anim_save("plot_out_mapa.gif")
+
+# plot_out
+# ggsave(plot_out,filename = "plot_out_mapa.png",width = 10,height = 5)
+```
+
+# tweet: 
+
+2019-08-21 #DatosdeMieRcoles #rstats_ES #rstatsES Emisiones de CO2! 
+en el tiempo en linea y 2 artes accidentales xD #accidentalArt
+que lo disfruten :D 
+https://github.com/jas1/datos-de-miercoles/tree/master/jas1_semanas/2019/2019-08-14
+1/3
+
+## comunicar: 
+
+usadas herramientas de previos desafios.
+claramente me lvide como animar los mapas xD.
