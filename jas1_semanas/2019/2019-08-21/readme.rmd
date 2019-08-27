@@ -260,7 +260,7 @@ gganimate::anim_save("plot_out_mapa.gif")
 2019-08-21 #DatosdeMieRcoles #rstats_ES #rstatsES Emisiones de CO2! 
 en el tiempo en linea y 2 artes accidentales xD #accidentalArt
 que lo disfruten :D 
-https://github.com/jas1/datos-de-miercoles/tree/master/jas1_semanas/2019/2019-08-14
+https://github.com/jas1/datos-de-miercoles/tree/master/jas1_semanas/2019/2019-08-21
 1/3
 
 ## comunicar: 
