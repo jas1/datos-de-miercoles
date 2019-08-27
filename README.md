@@ -2,7 +2,7 @@
 
 ## Un proyecto semanal de datos en R
 
-_Datos de miércoles_ es la versión en español de [#tidytuesday](https://github.com/rfordatascience/tidytuesday), un proyecto  semanal de datos organizado por la comunidad de R, que busca que sus participantes desarrollen sus habilidades procesando datos para crear gráficos significativos usando `ggplot2`, `tidyr`, `dplyr` y otras herramientas del `tidyverse`. El proyecto original surgió en el marco de la comunidad de aprendizaje online [R4DS](https://www.rfordatasci.com/) y desde abril de 2019 la comunidad sudamericana de R impulsa una versión local en español.  
+_Datos de miércoles_ es el primo latinoamericano de [#tidytuesday](https://github.com/rfordatascience/tidytuesday), un proyecto  semanal de datos organizado por la comunidad de R, que busca que sus participantes desarrollen sus habilidades procesando datos para crear gráficos significativos usando `ggplot2`, `tidyr`, `dplyr` y otras herramientas del `tidyverse`. El proyecto original surgió en el marco de la comunidad de aprendizaje online [R4DS](https://www.rfordatasci.com/) y desde abril de 2019 la comunidad sudamericana de R impulsa una versión local en español.  
 
 ***
 
@@ -65,6 +65,7 @@ _Datos de miércoles_ es una comunidad libre de acoso y hostigamiento, independi
 | 17 | `2019-07-31` | [Subtítulos de "La Casa de Papel"](https://github.com/cienciadedatos/datos-de-miercoles/tree/master/datos/2019/2019-07-31) | [My Subs](https://my-subs.com/versions-2402-1-1-la-casa-de-papel-subtitles) | [Análisis subtítulos Rick & Morty](https://pacha.hk/blog/2017/10/13/rick-and-morty-and-tidy-data-principles-part-1/)
 | 18 | `2019-08-07` | [Reporte de Felicidad Mundial](https://github.com/cienciadedatos/datos-de-miercoles/tree/master/datos/2019/2019-08-07) | [World Happiness Report 2019](https://worldhappiness.report/ed/2019/) | [Mapas Puntaje de Felicidad](https://datosmacro.expansion.com/demografia/indice-felicidad)|
 | 19 | `2019-08-14` | [Índice de Libertad Humana](https://github.com/cienciadedatos/datos-de-miercoles/tree/master/datos/2019/2019-08-14) | [The Human Freedom Index](https://www.cato.org/human-freedom-index-new) | [Libertad Humana en el mundo](https://imco.org.mx/temas/indice-libertad-mundo-2019-via-freedom-house/) |
+| 20 | `2019-08-21` | [Emisiones de CO2](https://github.com/cienciadedatos/datos-de-miercoles/tree/master/datos/2019/2019-08-21) | [Banco mundial](https://data.world/makeovermonday/2019w22) | [Make over Monday](https://www.makeovermonday.co.uk/week-22-2019/) |
 
 
 
