@@ -3,6 +3,10 @@ library(tidyverse) # install.packages(tidyverse)
 
 # leer ?png
 # leer ?ggsave
+# otros:
+# codigo plumber: https://github.com/rstudio/plumber/blob/master/R/images.R
+# docu plumber: https://www.rplumber.io/docs/rendering-and-output.html#response-object
+# uno de stack overflow: https://stackoverflow.com/questions/50033857/serve-arbitrary-image-files-through-plumber
 
 #* Plotear directo
 #* @png (width = 10 , height = 7,units="in" , res=300)
