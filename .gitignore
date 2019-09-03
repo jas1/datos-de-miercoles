@@ -13,3 +13,6 @@ config.txt
 # para ignorar el archivo de spotify asi no hay problemas por comer datos.
 20190515_spotify_out.txt
 tmp/**
+
+jas1_semanas/2019/2019-08-28/anim/**
+jas1_semanas/2019/2019-08-28/anim2/**

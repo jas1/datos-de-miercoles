@@ -1,0 +1,254 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-08-28 Bicicletas Buenos Aires !"
+author: "julio"
+date: "03-09-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-08-28 Bicicletas Buenos Aires!
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+bicicletas
+
+choroplet en rayshader de caba de estaciones x barrio
+
+buscar el choroplet de caba: 
+https://twitter.com/jspairani/status/1137925256428052481
+https://github.com/jas1/datos-de-miercoles/tree/master/jas1_semanas/2019/2019-06-05
+
+
+buscar el rayshader:
+https://twitter.com/jspairani/status/1145536192605315072
+https://github.com/jas1/tidytuesday/tree/master/jas1_weeks/2019/2019-06-25
+
+
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# library(magrittr)
+library(tidyverse)
+# library(ggrepel)
+library(skimr)
+
+library(here)
+# library(dplyr)
+# library(tidyr)
+# library(readxl)
+# library(janitor)
+# library(stringr)
+# library(lubridate)
+library(geojsonsf)
+library(spatialEco)#; install.packages("spatialEco")
+library(sp)
+library(sf)# install.packages('sf')
+# install.packages("Rcpp")
+# remotes::install_github("tylermorganwall/rayshader")
+library(rayshader)
+
+library(transformr)# install.packages('transformr')
+library(gganimate)# install.packages('gganimate')
+# library(recipes) # install.packages('recipes')
+# library(ggforce) # install.packages('ggforce')
+# library(FactoMineR)
+
+
+# library(tm)#; install.packages('tm')
+# library(topicmodels)#; install.packages('topicmodels')
+# library(rebus)#; install.packages('rebus')
+# library(tidytext)
+# library(ggplot2)
+# library(forcats)
+
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+estaciones <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-08-28/estaciones.csv")
+
+bicicletas <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-08-28/bicicletas.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+glimpse(estaciones)
+glimpse(bicicletas)
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+
+skimr::skim(estaciones)
+skimr::skim(bicicletas)
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+head(estaciones)
+
+
+```
+
+
+## 1: procesamiento 
+
+lograr tener estaciones por barrio
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+# viejos datos de barrios # lo cambie porque estaba pifiadas las locaciones respecto del de bicis
+# caba_barrios_file <- here::here("jas1_semanas","2019","2019-06-05","barrios_caba","barrios_badata.shp")
+# caba_barrios_shape <- st_read(caba_barrios_file)
+
+# nueva fuente: # http://cdn.buenosaires.gob.ar/datosabiertos/datasets/barrios/barrios.geojson
+caba_barrios_geojson_file<- here::here("jas1_semanas","2019","2019-08-28","barrios.geojson")
+caba_barrios_geojson <- geojson_sf(caba_barrios_geojson_file)
+
+# aca voy a tener que intersectar los puntos con los barrios dado que no tengo los barrios
+# para eso voy a usar algo que hice alguna vez con puntos y mapas
+# https://twitter.com/jspairani/status/1140388099341598723
+# https://github.com/jas1/tidytuesday/tree/master/jas1_weeks/2019/2019-06-11
+# https://cran.r-project.org/web/packages/geojsonsf/vignettes/geojson-sf-conversions.html
+# https://stackoverflow.com/questions/3647744/intersecting-points-and-polygons-in-r
+
+estaciones_puntos <- st_as_sf(estaciones, coords = c("lon", "lat"))
+# importantisimo ! mismo idioma para los mapas y puntos!
+st_crs(estaciones_puntos) <- st_crs(caba_barrios_geojson)
+
+estaciones_mapa_barrios <- sf::st_as_sf(point.in.poly(estaciones_puntos, caba_barrios_geojson))
+estaciones_mapa_barrios_tmp <- estaciones_mapa_barrios %>% 
+    sf::st_set_geometry(NULL) %>% # le saco el componente mapa
+    
+    group_by(barrio) %>% 
+    summarise(cantidad_estaciones=n(),capacidad_total_estaciones=sum(capacidad)) %>% 
+    
+    mutate(bin_cant_estaciones=case_when(cantidad_estaciones >= 25 ~ "+26",
+                            cantidad_estaciones >= 21 & cantidad_estaciones <= 25 ~ "21 - 25",
+                            cantidad_estaciones >= 16 & cantidad_estaciones <= 20 ~ "16 - 20",
+                            cantidad_estaciones >= 11 & cantidad_estaciones <= 15 ~ "11 - 15",
+                            cantidad_estaciones >= 6 & cantidad_estaciones <= 10 ~ "6 - 10",
+                            cantidad_estaciones >= 1 & cantidad_estaciones <= 5 ~ "1 - 5"))
+                            
+estaciones_mapa_barrios_choroplet <- caba_barrios_geojson %>% 
+    left_join(estaciones_mapa_barrios_tmp) %>% 
+    mutate(cantidad_estaciones=if_else(is.na(cantidad_estaciones),as.integer(0),cantidad_estaciones)) %>%
+    mutate(bin_cant_estaciones=if_else(is.na(bin_cant_estaciones),"no hay",bin_cant_estaciones)) %>% 
+    mutate(capacidad_total_estaciones=if_else(is.na(capacidad_total_estaciones),as.integer(0),
+                                              as.integer(capacidad_total_estaciones)))
+
+        
+
+
+```
+
+# 2: plot choroplet
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+plot_mapa_barrios_d <- estaciones_mapa_barrios_choroplet %>% 
+    ggplot()+
+    geom_sf(aes(fill=bin_cant_estaciones),color=NA)+
+    scale_fill_viridis_d()+
+    theme_void()+
+    labs(title="Cantidad estaciones de bicicleta por barrio",
+         fill="Estaciones")
+
+plot_mapa_barrios_d_2 <- estaciones_mapa_barrios_choroplet %>% 
+    ggplot()+
+    geom_sf(aes(fill=bin_cant_estaciones))+
+    scale_fill_viridis_d()+
+    theme_void()+
+    labs(title="Cantidad estaciones de bicicleta por barrio",
+         fill="Estaciones")
+
+
+plot_mapa_barrios_c <- estaciones_mapa_barrios_choroplet %>% 
+    mutate(barrio=forcats::fct_reorder(barrio,cantidad_estaciones)) %>% 
+    ggplot()+
+    geom_sf(aes(fill=cantidad_estaciones),color=NA)+
+    scale_fill_viridis_c()+
+    theme_void()+
+    labs(title="Cantidad estaciones de bicicleta por barrio",
+         fill="Estaciones")
+
+plot_mapa_barrios_d_2
+plot_mapa_barrios_d
+plot_mapa_barrios_c
+ggsave(plot_mapa_barrios_c,filename = "plot_mapa_barrios_c.png",width = 5,height = 5)
+ggsave(plot_mapa_barrios_d,filename = "plot_mapa_barrios_d.png",width = 5,height = 5)
+ggsave(plot_mapa_barrios_d_2,filename = "plot_mapa_barrios_d_2.png",width = 5,height = 5)
+
+```
+
+
+
+
+# 3: rayshader
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# OJO ! ESTO TARDA !
+# OJO ! no ser impacinete! 
+# OJO ! no navegar a la carpeta donde se generan las imagenes ! ( lo van a pasar mal ! )
+# si quieren ver la carpeta, les recomiendo ir via CMD o terminal
+
+# http://blog.schochastics.net/post/mapping-nba-shot-locations/
+plot_gg(plot_mapa_barrios_d_2, width = 5, height = 5, multicore = TRUE, scale = 250, 
+        zoom = 0.7, theta = 10, phi = 30, windowsize = c(800, 800))
+
+phivec <- 20 + 70 * 1/(1 + exp(seq(-5, 10, length.out = 180)))
+phivecfull <- c(phivec, rev(phivec))
+thetavec <- 90 * sin(seq(0,359,length.out = 360) * pi/180) #+270
+zoomvec <- 0.5 + 0.5 * 1/(1 + exp(seq(-5, 10, length.out = 180)))
+zoomvecfull <- c(zoomvec, rev(zoomvec))
+
+for(i in 1:115) { # aca tiene que ir de 1 a 360, pero me revento la pc asi que lo itero por partes.
+  render_camera(theta = thetavec[i],phi = phivecfull[i],zoom = zoomvecfull[i])
+    render_snapshot(here::here("jas1_semanas","2019","2019-08-28",
+                               "anim2",paste0("frame", i, ".png")))
+}
+for(i in 116:360) { # aca tiene que ir de 1 a 360, pero me revento la pc asi que lo itero por partes.
+  render_camera(theta = thetavec[i],phi = phivecfull[i],zoom = zoomvecfull[i])
+    render_snapshot(here::here("jas1_semanas","2019","2019-08-28",
+                               "anim2",paste0("frame", i, ".png")))
+}
+
+# Correr este comando en la consola usando ffmpeg para pegar todo como un video
+#ffmpeg -framerate 60 -i frame%d.png -vcodec libx264 caba_bicis.mp4
+
+#Correr este comando en la consola usando ffmpeg para ponerle calidad de web
+#ffmpeg -i caba_bicis.mp4 -pix_fmt yuv420p -profile:v baseline -level 3 -vf scale=-2:-2 caba_bicis.mp4
+
+    
+```
+
+
+# tweet: 
+
+2019-08-28 #DatosdeMieRcoles #rstats_ES #rstatsES Bicicletas de Buenos Aires! 
+Cantidad de estaciones por barrio, 
+https://github.com/jas1/datos-de-miercoles/tree/master/jas1_semanas/2019/2019-08-28
+
+
+## comunicar: 
+
+usadas herramientas de previos desafios.
+claramente me lvide como animar los mapas xD.
