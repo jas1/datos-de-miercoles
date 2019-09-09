@@ -1,0 +1,203 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-09-04 Programas candidatos Argentina y Uruguay!"
+author: "julio"
+date: "04-09-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-09-04 Programas candidatos Argentina y Uruguay!
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+2019-08-28 Programas candidatos Argentina y Uruguay
+algo que se pueda hacer con el nuevo ggraph ??
+
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# library(magrittr)
+library(tidyverse)
+# library(ggrepel)
+library(skimr)
+
+library(tidygraph)#; install.packages("tidygraph")
+library(ggraph)#; install.packages("ggraph")
+
+
+library(tm)#; install.packages('tm')
+library(topicmodels)#; install.packages('topicmodels')
+
+# library(here)
+# # library(dplyr)
+# # library(tidyr)
+# # library(readxl)
+# # library(janitor)
+# # library(stringr)
+# # library(lubridate)
+# library(geojsonsf)
+# library(spatialEco)#; install.packages("spatialEco")
+# library(sp)
+# library(sf)# install.packages('sf')
+# # install.packages("Rcpp")
+# # remotes::install_github("tylermorganwall/rayshader")
+# library(rayshader)
+# 
+# library(transformr)# install.packages('transformr')
+# library(gganimate)# install.packages('gganimate')
+# library(recipes) # install.packages('recipes')
+# library(ggforce) # install.packages('ggforce')
+# library(FactoMineR)
+
+
+# library(tm)#; install.packages('tm')
+# library(topicmodels)#; install.packages('topicmodels')
+# library(rebus)#; install.packages('rebus')
+# library(tidytext)
+# library(ggplot2)
+# library(forcats)
+
+```
+
+# explorar
+
+buen esta vez esta mas dificil. hay que hace ralgo con todo. 
+complemente con los otros que pasaron las paso. 
+ahora voy a levantar todos y voy a ver que sale.
+
+
+respecto de los datos: 
+
+encontre que: de las paso: 
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+datos_complementarios <- tibble::tribble(
+                        ~partido, ~porcentaje,                                        ~url_plataforma,
+               "Frente de Todos",    "47,65%",             "https://www.frentedetodos.org/plataforma",
+          "Juntos por el Cambio",    "32,08%",              "http://pro.com.ar/plataforma-electoral/",
+              "Consenso Federal",     "8,22%",                                                     NA,
+    "Frente de Izquierda Unidad",     "2,86%",                    "https://po.org.ar/elecciones-2019",
+                    "Frente Nos",     "2,63%",          "https://www.nosargentina.com.ar/plataforma/",
+                     "Despertar",     "2,18%", "https://www.frentedespertar.com/preguntas-frecuentes"
+    )
+fuentes_plot <- datos_complementarios %>% 
+  select(partido,url_plataforma) %>% 
+  ggplot(aes(x=partido,y= 5,label=url_plataforma))+
+  geom_text()+
+  coord_flip()+
+  theme_light()+
+  labs(title="Fuentes",
+       x="",y="",
+       caption = "#DatosdeMieRcoles")+
+  theme(axis.text.x = element_blank(),
+        panel.grid = element_blank())
+
+
+ggsave(plot = fuentes_plot,filename = "fuentes_plot.png")
+
+```
+
+lastima que concenso federal no le encontre una pagina web donde se vea la plataforma.
+es una lastima dado que es la 3ra opcion. 
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+here_path <- here::here("datos","2019","2019-09-04")
+propuestas_argentina_archivos <- list.files(here_path,
+                                            pattern = "argentina",
+                                            full.names = FALSE) %>% 
+  as_tibble() %>% 
+  rename(nombre=value) %>% 
+  mutate(archivo=paste0(here_path,"/",nombre)) %>% 
+  mutate(nombre=str_replace(nombre,".txt","")) %>% 
+  separate(nombre,into=c("pais","partido","candidato","anio"),sep = "_")
+
+propuestas_arg <- propuestas_argentina_archivos %>% 
+  mutate(datos=purrr::map(archivo,readr::read_lines)) 
+
+propuestas_arg_unnest <- propuestas_arg %>% 
+  mutate(datos=purrr::map(datos,.f = function(x){
+    # print(x)
+    lineas <- seq(from=1,to=length(x),by = 1)
+    x %>% as_tibble() %>%  mutate(linea=lineas)
+  })) %>% 
+  unnest(datos) %>% 
+  rename(datos=value)
+
+propuestas_arg_palabras <- propuestas_arg_unnest %>%
+  tidytext::unnest_tokens(palabra,datos)
+
+```
+
+sacamos stopwords español para cada uno
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+stopwords_es <- tm::stopwords(kind="es") %>% as_tibble() %>% rename(palabra=value)
+
+propuestas_arg_palabras_sin_stopwords <- propuestas_arg_palabras %>% 
+  anti_join(stopwords_es)
+
+# son 32 /as por "los/as" , que son 32, igual que lo que aparece aca.
+propuestas_arg_palabras_sin_stopwords %>% filter(palabra=="as")
+
+
+# los voy a quitar
+propuestas_arg_palabras_sin_stopwords_sin_as <- propuestas_arg_palabras_sin_stopwords %>%
+  filter(palabra!="as")
+
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+plot_freq_propuestas <- propuestas_arg_palabras_sin_stopwords_sin_as %>% 
+  nest(-candidato,-partido,-pais,-anio,-archivo ) %>% 
+  mutate(top_10=purrr::map(data,.f = function(x){
+    x %>% count(palabra,sort = TRUE)  %>% head(10) %>% 
+      mutate(palabra=fct_reorder(palabra,n)) 
+  })) %>% 
+  unnest(top_10) %>% 
+  mutate(palabra=fct_reorder(palabra,n)) %>% 
+  ggplot(aes(x=palabra,y = n,fill=partido))+
+  geom_col()+
+  facet_grid(partido~.,scales = "free_y")+
+  coord_flip()+
+  theme_light()+
+  theme(strip.text.y = element_text(angle=360),
+        legend.position = "none")+
+  labs(x="",y="",caption="#DatosdeMieRcoles",
+       title="Top 10 palabras por propuesta de Partido - Elecciones argentina 2019")
+
+ggsave(filename = "plot_freq_propuestas.png",plot = plot_freq_propuestas,width = 7,height = 10)
+
+```
+
+
+# tweet: 
+
+2019-09-04 #DatosdeMieRcoles #rstats_ES #rstatsES Programas candidatos Argentina y Uruguay !
+Lastima que no encontre la pagina de Consenso Federal donde este el programa :/
+
+codigo: https://github.com/jas1/datos-de-miercoles/jas1_semanas/2019/2019-09-04
+
+
+## comunicar: 
+
+usadas herramientas de previos desafios.
+claramente me lvide como animar los mapas xD.
