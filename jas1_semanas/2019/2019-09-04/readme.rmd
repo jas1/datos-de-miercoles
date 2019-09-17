@@ -194,7 +194,7 @@ ggsave(filename = "plot_freq_propuestas.png",plot = plot_freq_propuestas,width =
 2019-09-04 #DatosdeMieRcoles #rstats_ES #rstatsES Programas candidatos Argentina y Uruguay !
 Lastima que no encontre la pagina de Consenso Federal donde este el programa :/
 
-codigo: https://github.com/jas1/datos-de-miercoles/jas1_semanas/2019/2019-09-04
+codigo: https://github.com/jas1/datos-de-miercoles/tree/master/jas1_semanas/2019/2019-09-04
 
 
 ## comunicar: 

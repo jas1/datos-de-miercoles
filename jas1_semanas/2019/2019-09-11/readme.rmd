@@ -1,0 +1,262 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-09-11 Fuego en amazonas!!!"
+author: "julio"
+date: "17-09-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-09-11 Fuego en amazonas!!!
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+Fuego en amazonas!!!
+
+choroplet en rayshader de caba de estaciones x barrio
+
+buscar el choroplet de caba: 
+https://twitter.com/jspairani/status/1137925256428052481
+https://github.com/jas1/datos-de-miercoles/tree/master/jas1_semanas/2019/2019-06-05
+
+
+buscar el rayshader:
+https://twitter.com/jspairani/status/1145536192605315072
+https://github.com/jas1/tidytuesday/tree/master/jas1_weeks/2019/2019-06-25
+
+
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# library(magrittr)
+library(tidyverse)
+# library(ggrepel)
+library(skimr)
+
+library(here)
+# library(dplyr)
+# library(tidyr)
+# library(readxl)
+# library(janitor)
+# library(stringr)
+# library(lubridate)
+library(geojsonsf)
+library(spatialEco)#; install.packages("spatialEco")
+library(sp)
+library(sf)# install.packages('sf')
+# install.packages("Rcpp")
+# remotes::install_github("tylermorganwall/rayshader")
+library(rayshader)
+
+library(transformr)# install.packages('transformr')
+library(gganimate)# install.packages('gganimate')
+# library(recipes) # install.packages('recipes')
+# library(ggforce) # install.packages('ggforce')
+# library(FactoMineR)
+
+
+# library(tm)#; install.packages('tm')
+# library(topicmodels)#; install.packages('topicmodels')
+# library(rebus)#; install.packages('rebus')
+# library(tidytext)
+# library(ggplot2)
+# library(forcats)
+
+```
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+# install.packages("readr")
+incendios <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-09-11/incendios.csv")
+incendios_pais <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-09-11/incendios_pais.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+glimpse(incendios)
+glimpse(incendios_pais)
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+
+skimr::skim(incendios)
+skimr::skim(incendios_pais)
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+head(incendios)
+head(incendios_pais)
+
+
+```
+
+
+## 1: procesamiento 
+
+lograr tener estaciones por barrio
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# lograr_tener_resumen_datos <- 
+
+
+# viejos datos de barrios # lo cambie porque estaba pifiadas las locaciones respecto del de bicis
+# caba_barrios_file <- here::here("jas1_semanas","2019","2019-06-05","barrios_caba","barrios_badata.shp")
+# caba_barrios_shape <- st_read(caba_barrios_file)
+
+# nueva fuente: # http://cdn.buenosaires.gob.ar/datosabiertos/datasets/barrios/barrios.geojson
+cuenca_amazonas_geojson_archivo <- here::here("jas1_semanas","2019","2019-09-11","amapoly_ivb.json")
+cuenca_amazonas_geojson <- geojson_sf(cuenca_amazonas_geojson_archivo)
+
+
+brazil_state_geojson_archivo <- here::here("jas1_semanas","2019","2019-09-11","brazil-states.geojson")
+brazil_state_geojson <- geojson_sf(brazil_state_geojson_archivo)
+
+
+
+
+plot(cuenca_amazonas_geojson)
+plot(brazil_state_geojson)
+
+
+# aca voy a tener que intersectar los puntos con los barrios dado que no tengo los barrios
+# para eso voy a usar algo que hice alguna vez con puntos y mapas
+# https://twitter.com/jspairani/status/1140388099341598723
+# https://github.com/jas1/tidytuesday/tree/master/jas1_weeks/2019/2019-06-11
+# https://cran.r-project.org/web/packages/geojsonsf/vignettes/geojson-sf-conversions.html
+# https://stackoverflow.com/questions/3647744/intersecting-points-and-polygons-in-r
+
+incendios_brasil <- st_as_sf(incendios_pais %>% filter(ISO=="BRA"), coords = c("longitud", "latitud"))
+# importantisimo ! mismo idioma para los mapas y puntos!
+st_crs(incendios_brasil) <- st_crs(brazil_state_geojson)
+
+incendios_estados <- sf::st_as_sf(point.in.poly(incendios_brasil, brazil_state_geojson))
+incendios_estados_tmp_0 <- incendios_estados %>% 
+    sf::st_set_geometry(NULL) %>% # le saco el componente mapa
+    mutate(anio=lubridate::year(fecha)) %>% 
+    mutate(mes=lubridate::month(fecha)) %>% 
+    mutate(mes_anio=lubridate::as_date(paste0(lubridate::year(fecha),"-",
+                                              lubridate::month(fecha),"-01")))  
+  
+incendios_estados_tmp_anio <- incendios_estados_tmp_0 %>%    
+    group_by(sigla,mes_anio,mes,anio) %>% 
+    summarise(cantidad_incendios=n(), intensidad_media=mean(intensidad))  %>% 
+    mutate(bin_cant_incendios=case_when(cantidad_incendios >= 5000 ~ "+5000",
+                            cantidad_incendios > 4000 & cantidad_incendios <= 5000 ~ "4000 - 5000",
+                            cantidad_incendios > 3000 & cantidad_incendios <= 4000 ~ "3000 - 4000",
+                            cantidad_incendios > 2000 & cantidad_incendios <= 3000 ~ "2000 - 3000",
+                            cantidad_incendios > 1000 & cantidad_incendios <= 2000 ~ "1000 - 2000",
+                            cantidad_incendios > 500 & cantidad_incendios <= 1000 ~ "500 - 1000",
+                            cantidad_incendios > 0 & cantidad_incendios <= 500 ~ "0 - 500"))
+    
+
+
+incendios_estados_tmp <- incendios_estados_tmp_0 %>%   
+    group_by(sigla,mes,anio) %>% 
+    summarise(cantidad_incendios=n(), intensidad_media=mean(intensidad))  %>% 
+    mutate(bin_cant_incendios=case_when(cantidad_incendios >= 5000 ~ "5000+",
+                            cantidad_incendios > 4000 & cantidad_incendios <= 5000 ~ "4000 - 5000",
+                            cantidad_incendios > 3000 & cantidad_incendios <= 4000 ~ "3000 - 4000",
+                            cantidad_incendios > 2000 & cantidad_incendios <= 3000 ~ "2000 - 3000",
+                            cantidad_incendios > 1000 & cantidad_incendios <= 2000 ~ "1000 - 2000",
+                            cantidad_incendios > 500 & cantidad_incendios <= 1000 ~ "500 - 1000",
+                            cantidad_incendios > 0 & cantidad_incendios <= 500 ~ "0 - 500"))
+
+
+full_grid_incendios <- expand_grid(x=incendios_estados_tmp_3 %>% ungroup() %>% distinct(sigla) %>% pull(sigla),y=incendios_estados_tmp_3 %>% ungroup() %>% distinct(anio_mes) %>% pull(anio_mes)) %>% 
+  # mutate(cantidad_incendios=NA_integer_,
+  #        bin_cant_incendios=NA_character_) %>% 
+  rename(sigla=x,anio_mes=y) %>% 
+  mutate(column_join=paste0(sigla,"_",anio_mes)) %>% 
+  select(column_join)
+
+incendios_estados_tmp_for_join <- full_grid_incendios %>% 
+    full_join(incendios_estados_tmp %>% 
+                mutate(column_join=paste0(sigla,"_",anio,"-",mes)) %>% 
+                ungroup() %>% 
+                select(-sigla,-anio,-mes)) %>% 
+  separate(column_join,into=c("sigla","anio","mes"))
+
+
+
+
+incendios_estados_choroplet <- brazil_state_geojson %>% 
+    left_join(incendios_estados_tmp_for_join) #%>% 
+    # mutate(cantidad_estaciones=if_else(is.na(cantidad_estaciones),as.integer(0),cantidad_estaciones)) %>%
+    # mutate(bin_cant_estaciones=if_else(is.na(bin_cant_estaciones),"no hay",bin_cant_estaciones)) %>% 
+    # mutate(capacidad_total_estaciones=if_else(is.na(capacidad_total_estaciones),as.integer(0),
+    #                                           as.integer(capacidad_total_estaciones)))
+
+  incendios_estados_choroplet_anios <- brazil_state_geojson %>% 
+    left_join(incendios_estados_tmp_anio)      
+
+
+```
+
+# 2: plot choroplet
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+plot_mapa_estados_d <- incendios_estados_choroplet %>%
+    ggplot()+
+    geom_sf(aes(fill=bin_cant_incendios),color=NA)+
+    scale_fill_viridis_d(na.value = "grey")+
+    theme_void()+
+    transition_manual(frames = mes)+
+    labs(title="Cantidad incendios por Estado 2019-{current_frame}",
+         subtitle="en Brasil 2019-1 a 2019-7",
+         fill="# incendios",caption="#DatosdeMieRcoles")
+
+gganimate::anim_save(filename = "plot_mapa_estados_d.gif")
+
+# incendios_estados_choroplet_anios %>% sf::st_set_geometry(NULL) %>%distinct(anio)
+plot_mapa_estados_c <- incendios_estados_choroplet_anios %>% 
+    mutate(sigla=forcats::fct_reorder(sigla,cantidad_incendios)) %>% 
+    ggplot()+
+    geom_sf(aes(fill=cantidad_incendios),color=NA)+
+    # scale_fill_viridis_c(option = "B")+
+    scale_fill_viridis_c(na.value = "grey")+
+    theme_void()+
+    transition_manual(frames = mes)+
+    labs(title="Cantidad incendios por Estado 2019-{current_frame}",
+         fill="Estaciones",caption="#DatosdeMieRcoles")
+        # labs(title="Cantidad incendios por Estado  {frame_time}",
+        #  fill="Estaciones")  +
+  # gganimate::transition_time(mes) +
+  # gganimate::ease_aes('linear')
+
+
+```
+
+
+
+# tweet: 
+
+2019-09-11 #DatosdeMieRcoles #rstats_ES #rstatsES Fuego en amazonas!!!
+Cantidad de Incendios por estado en acotado a Brasil.
+
+
+
+
+## comunicar: 
+
+usadas herramientas de previos desafios.
+claramente me lvide como animar los mapas xD.
