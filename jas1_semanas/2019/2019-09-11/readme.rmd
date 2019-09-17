@@ -251,8 +251,8 @@ plot_mapa_estados_c <- incendios_estados_choroplet_anios %>%
 # tweet: 
 
 2019-09-11 #DatosdeMieRcoles #rstats_ES #rstatsES Fuego en amazonas!!!
-Cantidad de Incendios por estado en acotado a Brasil.
-
+Cantidad de Incendios por estado en acotado a Brasil. :D
+codigo: https://github.com/jas1/datos-de-miercoles/tree/master/jas1_semanas/2019/2019-09-11
 
 
 
