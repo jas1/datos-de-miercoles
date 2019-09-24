@@ -1,0 +1,167 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-09-18 Semana libre !"
+author: "julio"
+date: "17-09-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-09-18 Semana libre !
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+2019-09-18 Semana libre !
+
+voy a orientarlo a un mapa que labure un tiempo a modo hobby luego quedo ahi .. 
+
+ahora tengo un poco mas de conocimiento para retomarlo. 
+
+ARBOLES PLATANOS EN CABA.
+
+buscar el choroplet de caba: 
+https://twitter.com/jspairani/status/1137925256428052481
+https://github.com/jas1/datos-de-miercoles/tree/master/jas1_semanas/2019/2019-06-05
+
+
+buscar el rayshader:
+https://twitter.com/jspairani/status/1145536192605315072
+https://github.com/jas1/tidytuesday/tree/master/jas1_weeks/2019/2019-06-25
+
+
+Los datos que contamos son los CSV y los SHP con otros cuantos archivos mas.
+
+datos arbolado en calles:
+
+https://data.buenosaires.gob.ar/dataset/arbolado-publico-lineal
+
+datos arbolado en espacios verdes:
+
+https://data.buenosaires.gob.ar/dataset/arbolado-en-espacios-verdes
+
+los datos de geojson de CABA: 
+
+http://cdn.buenosaires.gob.ar/datosabiertos/datasets/barrios/barrios.geojson
+
+
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(skimr)
+library(here)
+
+library(geojsonsf)
+library(spatialEco)#; install.packages("spatialEco")
+library(sp)
+library(sf)# install.packages('sf')
+
+library(rayshader)
+
+library(transformr)# install.packages('transformr')
+library(gganimate)# install.packages('gganimate')
+
+
+```
+
+# explorar
+
+ya los datos los traigo procesados del proyecto que armo.
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+# custom_colors_spring <- rev(c("#d9efc6","#b3d7af","#92b577","#e7e37c","#eddb66","#f7886f"))
+custom_colors_spring <- rev(c("#d2ead1","#d9ffc6","#b3e7af","#e7e37c","#f7886f"))
+# "#fbffce"
+
+platanos_en_barrios_sf_bins_para_plot <- readr::read_rds(path = "platanos_caba.rds")
+
+plot_caba <- 
+ggplot()+
+    geom_sf(data = platanos_en_barrios_sf_bins_para_plot,
+            aes(fill=cantidad_bins),color=NA)+
+    scale_fill_manual(values = custom_colors_spring)+
+    # geom_point(data=terremotos,aes(y = latitud,x=longitud))+
+    theme_void()+
+      theme(
+        # panel.background = element_rect("#202020"), 
+        panel.grid = element_blank(),
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        axis.ticks = element_blank())+
+    labs(title="Árboles - Plátanos por barrio",
+         subtitle="C.A. Buenos Aires - Argentina - data de 2018.09",
+         fill="Cantidad de plátanos",
+         caption="#DatosdeMieRcoles")
+
+ggsave("plot_caba.png",plot = plot_caba,width = 5,height = 5)
+
+```
+
+# tweet: 
+
+2019-09-18 #DatosdeMieRcoles #rstats_ES #rstatsES Semana libre ! Retome un proyecto hobby,
+Arboles Platano en C.A.Buenos Aires. 
+los datos son procesados de fuentes de CABA ver codigo para recursos ;)
+
+codigo: https://github.com/jas1/datos-de-miercoles/tree/master/jas1_semanas/2019/2019-09-18
+
+
+
+## comunicar: 
+
+### recursos: 
+
+Los datos que contamos son los CSV y los SHP con otros cuantos archivos mas.
+
+datos arbolado en calles:
+
+https://data.buenosaires.gob.ar/dataset/arbolado-publico-lineal
+
+datos arbolado en espacios verdes:
+
+https://data.buenosaires.gob.ar/dataset/arbolado-en-espacios-verdes
+
+los datos de geojson de CABA: 
+
+http://cdn.buenosaires.gob.ar/datosabiertos/datasets/barrios/barrios.geojson
+
+
+armando un choroplet con colores custom. 
+importante el orden de los levels que lo setee en la parte anterior. 
+
+luego estan la cantidad de colores que voy a mostrar. 
+luego esta buscar paleta custom, inspirado y luego rpobar. 
+
+aca: https://www.color-hex.com/color-palette/80133
+aca: https://www.color-hex.com/color-palette/80811
+aca: https://www.color-hex.com/color-palette/82731
+
+luego de dar vueltas con los colores empece a tunear acorde a conocimiento / intuicion. 
+teniendo en cuenta que #RRGGBB: 
+R = componnte que hace rojo
+G = componente que hace verde
+B = componente que hace azul
+
+y tambien los valores estan en hexadecimal , de mas obscuro a mas claro siendo 
+0 mas obscuro y F mas claro. 
+
+entonces lo que se expresa en el codigo de color es por cada componete RGB, 
+2 valores numericos expresados en hexadecimal. cuanto mas cercano a F mas claro. 
+cuanto mas cercano a 0 mas obscuro
+
+mayus o minus no calienta en el color. 
