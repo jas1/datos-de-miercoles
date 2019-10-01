@@ -1,0 +1,203 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-09-25 Semana libre 2: #LatinR2019 !"
+author: "julio"
+date: "17-09-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-09-25 Semana libre 2: #LatinR2019 !
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+2019-09-25 Semana libre 2: #LatinR2019!
+
+Para festejar uno de los grandes logros de @r4ds_es vamos a usar los datos del paquete "datos" !
+que hacen traducciones de paquetes clasicos
+
+## importar
+
+```{r}
+
+paquetes_requeridos <- tibble::tribble(
+                 ~Nombre,                                                                                    ~Titulo,       ~Paquete,         ~Dataset,
+               "nombres",                                                                         "Nombres de bebés",    "babynames",      "babynames",
+                  "fiel",                                               "Datos del géiser Viejo Fiel (Old Faithful)",     "datasets",       "faithful",
+                "flores",                                               "Datos sobre la flor Iris de Edgar Anderson",     "datasets",           "iris",
+               "mtautos",                                            "Pruebas de ruta de automóviles de Motor Trend",     "datasets",         "mtcars",
+              "encuesta",                                  "Muestra de variables categóricas de una encuesta social",      "forcats",        "gss_cat",
+               "comunes",                                                             "Modelos comunes de vehículos",  "fueleconomy",         "common",
+             "vehiculos",                                                         "Datos de economía de combustible",  "fueleconomy",       "vehicles",
+                "paises",                                                                       "Datos de Gapminder",    "gapminder",      "gapminder",
+             "diamantes",                                                               "Precio de 50.000 diamantes",      "ggplot2",       "diamonds",
+                "millas", "Datos de economía de combustible de 1999 y 2008 para 38 modelos populares de automóviles",      "ggplot2",            "mpg",
+          "presidencial",                                     "Periodos de 11 presidentes, desde Eisenhower a Obama",      "ggplot2",   "presidential",
+    "premios_dirigentes",                                                       "Tabla de premios de los dirigentes",       "Lahman", "AwardsManagers",
+            "bateadores",                                                           "Tabla de estadísticas de bateo",       "Lahman",        "Batting",
+            "jardineros",                                                      "Tabla de estadísticas de jardineros",       "Lahman",       "Fielding",
+            "dirigentes",                                                                      "Tabla de dirigentes",       "Lahman",       "Managers",
+              "personas",                                                                        "Tabla de personas",       "Lahman",         "People",
+            "lanzadores",                                                      "Tabla de estadísticas de lanzadores",       "Lahman",       "Pitching",
+              "salarios",                                                                        "Tabla de salarios",       "Lahman",       "Salaries",
+             "atmosfera",                                                                       "Datos atmosféricos",  "nasaweather",          "atmos",
+            "aerolineas",                                                                    "Nombres de aerolíneas", "nycflights13",       "airlines",
+           "aeropuertos",                                                                     "Datos de aeropuertos", "nycflights13",       "airports",
+                "vuelos",                                                                          "Datos de vuelos", "nycflights13",        "flights",
+               "aviones",                                                                         "Datos de aviones", "nycflights13",         "planes",
+                 "clima",                                                                           "Datos de clima", "nycflights13",        "weather",
+                "tabla1",         "Registros de tuberculosis de la Organización Mundial de la Salud (1era variante)",        "tidyr",         "table1",
+                "tabla2",          "Registros de tuberculosis de la Organización Mundial de la Salud (2da variante)",        "tidyr",         "table2",
+                "tabla3",         "Registros de tuberculosis de la Organización Mundial de la Salud (3era variante)",        "tidyr",         "table3",
+               "tabla4a",         "Registros de tuberculosis de la Organización Mundial de la Salud (3era variante)",        "tidyr",        "table4a",
+               "tabla4b",         "Registros de tuberculosis de la Organización Mundial de la Salud (3era variante)",        "tidyr",        "table4b",
+                "tabla5",         "Registros de tuberculosis de la Organización Mundial de la Salud (3era variante)",        "tidyr",         "table5",
+                   "oms",                             "Datos de tuberculosis de la Organización Mundial de la Salud",        "tidyr",            "who"
+    )
+
+
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(datos)# ; install.packages("datos")
+library(tidytext)
+library(tidyverse)
+library(pacman)
+
+library(igraph)
+
+# library(nycflights13)#install.packages("nycflights13")
+# library(tidyeval) #; install.packages("tidyeval")
+
+# levantando dependencias :P
+paqus_pre <- paquetes_requeridos %>%
+  janitor::clean_names()
+
+
+paqus <- paqus_pre %>%
+  distinct(paquete) %>% pull()
+# 
+# 
+# 
+#    install.packages(paqus)
+# 
+#  
+pacman::p_load(paqus) 
+
+# 
+#   mutate(levanto=if_else(library(as.character(paquete) ,logical.return = TRUE),
+#                          paste0(TRUE),
+#                          {install.packages(paquete);library(paquete,logical.return = TRUE)}))
+# 
+
+```
+
+
+
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# df_oraciones <- datos::oraciones %>% as_tibble() %>% rename(oraciones=value)
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+listado_datos <- ls("package:datos") %>% as_tibble() %>% rename(conjunto=value) %>% 
+  mutate(data_asociada=purrr::map(.x=conjunto,.f=function(conj){
+    retu <- eval(parse(text = paste0("datos::",conj)))
+    
+    as_tibble(retu)
+  })) %>% 
+  mutate(data_tipo=purrr::map(.x=data_asociada,.f=function(data){
+    class(data)
+  })) %>% 
+  unnest(data_tipo) %>% 
+  mutate(data_cantidad=purrr::map(.x=data_asociada,.f=function(data){
+    nrow(data)
+  })) %>% 
+  unnest(data_cantidad)
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+sin_data <- listado_datos %>% select(-data_asociada) %>% 
+  distinct(conjunto,data_cantidad) 
+
+sin_data_2 <- sin_data %>% 
+  left_join(paqus_pre,by=c("conjunto"="nombre")) %>% 
+  mutate(tipo_paquete=paste0("paq_",paquete)) %>% 
+  select(conjunto,tipo_paquete,data_cantidad,paquete)
+```
+
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+grafo <- graph_from_data_frame(sin_data_2)
+V(grafo)$type <- V(grafo)$name %in% sin_data_2$tipo_paquete
+proj <- bipartite.projection(graph = grafo)
+proj_datos <-  proj$proj1
+V(proj_datos)$size <- as_tibble( V(proj_datos)$name) %>% 
+  left_join(sin_data_2,by=c("value"="conjunto")) %>% 
+  pull(data_cantidad) 
+
+V(proj_datos)$group <-  as_tibble( V(proj_datos)$name) %>% 
+  left_join(sin_data_2,by=c("value"="conjunto")) %>% 
+  pull(paquete) 
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# install.packages("ggraph")
+library(ggraph)
+ggraph_datos <- ggraph(proj_datos) + 
+    # geom_node_voronoi(aes(fill = group), max.radius = 0.15, colour = 'white') +
+  geom_edge_link(colour = 'grey') + 
+  geom_node_point( aes(size = size,colour=group)) +
+  geom_node_text(aes(label=name),
+                 # nudge_y = 0.05,
+                 repel = TRUE)+
+      theme_graph()+
+  labs(title="Conjuntos de datos en el paquete 'datos'",
+       color="paquete contenedor",size="# datos",
+       caption="#DatosDeMieRcoles")
+  
+
+ggsave(filename = "ggraph_datos.png",plot = ggraph_datos,width = 10,height = 5)
+
+```
+
+# tweet: 
+
+
+2019-09-25 #DatosdeMieRcoles #rstats_ES #rstatsES Semana libre 2: #LatinR2019!
+Para festejar uno de los grandes logros de @R4DS_es vamos a explorar paquete "datos" !
+donde se hacen traducciones de paquetes clasicos.
+vemos novedades en grupo de paquete = NA, o sea que no estan asociados a paquetes anteriores :U
+investigando un poco mas , son traducciones de grupos de palabras no eran datasets :D !
+
+## comunicar: 
+
+jugue con ggraph 
+
+me re desvirtue en tiempo porque no tenia objetivo claro y no recordaba varias cosas :p 
+
+### recursos: 
+
+
+https://www.data-imaginist.com/2017/introducing-tidygraph/
+https://www.data-imaginist.com/2019/1-giraffe-2-giraffe-go/
+https://stackoverflow.com/questions/47175541/plot-labels-for-specific-geom-node-text
