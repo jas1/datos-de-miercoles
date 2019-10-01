@@ -32,6 +32,8 @@ que hacen traducciones de paquetes clasicos
 ## importar
 
 ```{r}
+# aguante el data pasta: esto lo saque del help del paquete. 
+
 
 paquetes_requeridos <- tibble::tribble(
                  ~Nombre,                                                                                    ~Titulo,       ~Paquete,         ~Dataset,
@@ -79,30 +81,17 @@ library(tidyverse)
 library(pacman)
 
 library(igraph)
+library(ggraph)
 
-# library(nycflights13)#install.packages("nycflights13")
-# library(tidyeval) #; install.packages("tidyeval")
-
-# levantando dependencias :P
+# levantando dependencias :P, sacando los nombres.
 paqus_pre <- paquetes_requeridos %>%
   janitor::clean_names()
 
 
 paqus <- paqus_pre %>%
   distinct(paquete) %>% pull()
-# 
-# 
-# 
-#    install.packages(paqus)
-# 
-#  
-pacman::p_load(paqus) 
 
-# 
-#   mutate(levanto=if_else(library(as.character(paquete) ,logical.return = TRUE),
-#                          paste0(TRUE),
-#                          {install.packages(paquete);library(paquete,logical.return = TRUE)}))
-# 
+pacman::p_load(paqus) # levantando las dependencias
 
 ```
 
@@ -112,21 +101,15 @@ pacman::p_load(paqus)
 # explorar
 
 ```{r echo=FALSE,message=FALSE,warning=FALSE}
-# df_oraciones <- datos::oraciones %>% as_tibble() %>% rename(oraciones=value)
-```
-
-
-```{r echo=FALSE,message=FALSE,warning=FALSE}
+# levanto nombre datos
 listado_datos <- ls("package:datos") %>% as_tibble() %>% rename(conjunto=value) %>% 
+  #  levanto los datos en si
   mutate(data_asociada=purrr::map(.x=conjunto,.f=function(conj){
     retu <- eval(parse(text = paste0("datos::",conj)))
     
     as_tibble(retu)
   })) %>% 
-  mutate(data_tipo=purrr::map(.x=data_asociada,.f=function(data){
-    class(data)
-  })) %>% 
-  unnest(data_tipo) %>% 
+  # cuento cantidad por cada DF
   mutate(data_cantidad=purrr::map(.x=data_asociada,.f=function(data){
     nrow(data)
   })) %>% 
@@ -134,9 +117,11 @@ listado_datos <- ls("package:datos") %>% as_tibble() %>% rename(conjunto=value) 
 ```
 
 ```{r echo=FALSE,message=FALSE,warning=FALSE}
+# levanto los distintos
 sin_data <- listado_datos %>% select(-data_asociada) %>% 
   distinct(conjunto,data_cantidad) 
 
+# junto ls distintos con su cantidad de datos
 sin_data_2 <- sin_data %>% 
   left_join(paqus_pre,by=c("conjunto"="nombre")) %>% 
   mutate(tipo_paquete=paste0("paq_",paquete)) %>% 
@@ -146,23 +131,35 @@ sin_data_2 <- sin_data %>%
 
 
 ```{r echo=FALSE,message=FALSE,warning=FALSE}
+# armo el grafo
 grafo <- graph_from_data_frame(sin_data_2)
+
+# seteo tipo de nodos. si es paquete le pongo tipo 1.
 V(grafo)$type <- V(grafo)$name %in% sin_data_2$tipo_paquete
+
+# realizo la proyeccion del grafo sobre tipo 1.
 proj <- bipartite.projection(graph = grafo)
+
+# renombro
 proj_datos <-  proj$proj1
+
+# cuantos datos tiene cada vertice
 V(proj_datos)$size <- as_tibble( V(proj_datos)$name) %>% 
   left_join(sin_data_2,by=c("value"="conjunto")) %>% 
   pull(data_cantidad) 
 
+# a que paquete paertenece cada vertice
 V(proj_datos)$group <-  as_tibble( V(proj_datos)$name) %>% 
   left_join(sin_data_2,by=c("value"="conjunto")) %>% 
   pull(paquete) 
 
+# se puede hacer mas facil pero ahora demore mucho , 
+# creo que haciendolo con tidygraph puede se rmucho mas ameno
+
 ```
 
 ```{r echo=FALSE,message=FALSE,warning=FALSE}
-# install.packages("ggraph")
-library(ggraph)
+# para hacer el plot
 ggraph_datos <- ggraph(proj_datos) + 
     # geom_node_voronoi(aes(fill = group), max.radius = 0.15, colour = 'white') +
   geom_edge_link(colour = 'grey') + 
