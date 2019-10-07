@@ -304,7 +304,7 @@ destaque las cuentas que son de Rladies en color violeta.
 y mayor cantidad de interacciones en tamaño. ( solo total ) 
 Espero guste . :D
 gracias @TuQmano por los datos :D !
-codigo: 
+codigo: https://github.com/jas1/datos-de-miercoles/tree/master/jas1_semanas/2019/2019-10-02
 
 ## comunicar: 
 
