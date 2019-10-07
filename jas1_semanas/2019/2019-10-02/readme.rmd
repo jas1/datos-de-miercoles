@@ -1,0 +1,320 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-10-02 : TWEETS #LatinR2019 & @latinr_conf !"
+author: "julio"
+date: "04-10-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-10-02 : TWEETS #LatinR2019 & @latinr_conf 
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+Semana 2019-10-02 : TWEETS #LatinR2019 & @latinr_conf 
+
+se pueden hacer mil cosas, creo que la mas base es ver que grupos de personas estan relacionados. 
+
+que personas con que hashtags ?
+
+que mensajes tienen textos similares ?
+
+## importar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# library(datos)# ; install.packages("datos")
+library(tidytext)
+library(tidyverse)
+library(pacman);#install.packages('pacman')
+library(rebus)
+library(igraph)
+library(tidygraph)
+library(ggraph)
+library(gganimate)
+library(lubridate)
+# # levantando dependencias :P, sacando los nombres.
+# paqus_pre <- paquetes_requeridos %>%
+#   janitor::clean_names()
+# 
+# 
+# paqus <- paqus_pre %>%
+#   distinct(paquete) %>% pull()
+# 
+# pacman::p_load(paqus) # levantando las dependencias
+
+```
+
+
+```{r}
+tweets_latinr_conf <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-10-02/tweets_latinr_conf.csv")
+tweets_latinr <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-10-02/tweets_latinR.csv")
+```
+
+
+
+
+
+# explorar
+
+extraer menciones
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+from_to <- tweets_latinr %>% 
+    mutate(menciones=purrr::map(.x=tweet,
+                                pattern='@\\w+',
+                                .f=str_extract_all)) %>% 
+    mutate(fecha_hora=lubridate::as_datetime(paste0(fecha,hora))) %>% 
+    mutate(fecha_hora_6=lubridate::floor_date(fecha_hora,unit = "6 hours")) %>% 
+    mutate(fecha_hora_6_txt=factor(format(fecha_hora_6,"%Y%m%d-%H%M"))) %>% 
+    select(nombre_usuario,menciones,fecha_hora,fecha_hora_6,tweet) %>% 
+    mutate(nombre_usuario=str_to_lower(paste0('@',nombre_usuario))) %>% 
+    unnest(menciones) %>% 
+    unnest(menciones) %>% 
+mutate(menciones=str_to_lower(menciones))
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+from_to_igraph <- from_to %>% 
+    igraph::graph_from_data_frame(directed = TRUE ) 
+
+# V(from_to_igraph)$size <- degree(from_to_igraph,mode = 'in')
+V(from_to_igraph)$size <- degree(from_to_igraph,mode = 'out')
+V(from_to_igraph)[str_detect(V(from_to_igraph)$name,'rladies')]$color <- '#a98ed5' 
+V(from_to_igraph)[str_detect(V(from_to_igraph)$name,'rladies')]$x <- 100
+V(from_to_igraph)[str_detect(V(from_to_igraph)$name,'rladies')]$color <- '#a98ed5' 
+
+E(from_to_igraph)$fecha_hora_6 <- lubridate::as_datetime(E(from_to_igraph)$fecha_hora_6)
+
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+from_to_igraph%>% 
+    visNetwork::visIgraph() 
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+ggraph_datos <- ggraph(from_to_igraph,layout = 'kk') + 
+    # geom_node_voronoi(aes(fill = group), max.radius = 0.15, colour = 'white') +
+  geom_edge_link(colour = 'grey') + 
+  geom_node_point( aes(size = size,colour=color)) +
+  # geom_node_text(aes(label=name),
+                 # nudge_y = 0.05,
+                 # repel = TRUE)+
+      theme_graph()+
+  labs(title="Menciones de usuarios\nque contengan el tag #LatinR2019",
+       color='color Rladies',size="# datos",
+       caption="#DatosDeMieRcoles")
+
+ggraph_datos
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+ggraph_datos <- ggraph(from_to_igraph, layout = 'linear') + 
+    geom_edge_arc()+
+      theme_graph()+
+  labs(title="Menciones de usuarios que contengan el tag #LatinR2019",
+       color='color Rladies',size="# datos",
+       caption="#DatosDeMieRcoles")
+
+ggraph_datos
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+
+
+ggraph_datos <- ggraph(from_to_igraph,  'partition') + 
+    geom_node_tile( size = 0.25)+
+      # theme_graph()+
+  labs(title="Menciones de usuarios que contengan el tag #LatinR2019",
+       color='color Rladies',size="# datos",
+       caption="#DatosDeMieRcoles")
+
+ggraph_datos
+```
+
+## animado
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# tidy_graph_latinr
+tidy_graph_latinr <- from_to_igraph %>% 
+  tidygraph::as_tbl_graph() %>% 
+  tidygraph::activate(edges) %>% 
+  mutate(fecha_hora_6=lubridate::as_datetime(fecha_hora_6)) %>% 
+  mutate(fecha_hora=lubridate::as_datetime(fecha_hora)) %>% 
+  tidygraph::activate(nodes) %>% 
+  mutate(color=if_else(is.na(color),'grey',color))
+
+color_nodos <- tidy_graph_latinr %>% 
+  activate(nodes) %>% 
+  distinct(color) %>% 
+  pull(color) %>% rev()
+
+ggraph_datos <- ggraph(tidy_graph_latinr,layout = 'kk') + 
+    # geom_node_voronoi(aes(fill = group), max.radius = 0.15, colour = 'white') +
+  geom_edge_link(colour = 'grey') + 
+  geom_node_point( aes(size = size,colour=color),alpha = 0.7) +
+  # geom_node_text(aes(label=name),
+                 # nudge_y = 0.05,
+                 # repel = TRUE)+
+  scale_color_manual(values = color_nodos)+
+      theme_graph()+
+  labs(title="Menciones de usuarios\nque contengan el tag #LatinR2019",
+       # subtitle="bin temporal: 6hs; {format(as_datetime(closest_state),'%Y%m%d-%H%M')}",# {closest_state}
+       subtitle="bin temporal: 6hs; {closest_state}",# {closest_state}
+       # subtitle="bin temporal: 6hs; {frame_time}",#
+       color='color Rladies',size="# datos",
+       caption="#DatosDeMieRcoles")+
+  # transition_time(fecha_hora_6)+
+  transition_states(
+    fecha_hora_6,
+    transition_length = 2,
+    state_length = 3
+  ) +
+  enter_fade() +
+  exit_shrink() +
+  ease_aes('sine-in-out')
+  
+  # gganimate::transition_states(fecha_hora_6_txt) #+
+  # gganimate::ease_aes('linear')
+  # gganimate::enter_fade() +
+  # gganimate::exit_fade()
+
+ggraph_datos
+```
+
+## animacion de nodos tambien ?
+
+queda para la proxima , demasiado tiempo en esto.
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# tidy_graph_latinr
+tidy_graph_latinr <- from_to_igraph %>% 
+  tidygraph::as_tbl_graph() %>% 
+  tidygraph::activate(edges) %>% 
+  mutate(fecha_hora_6=lubridate::as_datetime(fecha_hora_6)) %>% 
+  mutate(fecha_hora=lubridate::as_datetime(fecha_hora)) %>% 
+  tidygraph::activate(nodes) %>% 
+  mutate(color=if_else(is.na(color),'grey',color))
+
+color_nodos <- tidy_graph_latinr %>% 
+  activate(nodes) %>% 
+  distinct(color) %>% 
+  pull(color) %>% rev()
+
+ggraph_datos <- ggraph(tidy_graph_latinr,layout = 'kk') + 
+    # geom_node_voronoi(aes(fill = group), max.radius = 0.15, colour = 'white') +
+  geom_edge_link(colour = 'grey') + 
+  geom_node_point( aes(size = size,colour=color),alpha = 0.7) +
+  # geom_node_text(aes(label=name),
+                 # nudge_y = 0.05,
+                 # repel = TRUE)+
+  scale_color_manual(values = color_nodos)+
+      theme_graph()+
+  labs(title="Menciones de usuarios\nque contengan el tag #LatinR2019",
+       # subtitle="bin temporal: 6hs; {format(as_datetime(closest_state),'%Y%m%d-%H%M')}",# {closest_state}
+       subtitle="bin temporal: 6hs; {closest_state}",# {closest_state}
+       # subtitle="bin temporal: 6hs; {frame_time}",#
+       color='color Rladies',size="# datos",
+       caption="#DatosDeMieRcoles")+
+  # transition_time(fecha_hora_6)+
+  transition_states(
+    fecha_hora_6,
+    transition_length = 2,
+    state_length = 3
+  ) +
+  enter_fade() +
+  exit_shrink() +
+  ease_aes('sine-in-out')
+  
+  # gganimate::transition_states(fecha_hora_6_txt) #+
+  # gganimate::ease_aes('linear')
+  # gganimate::enter_fade() +
+  # gganimate::exit_fade()
+
+ggraph_datos
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# armo el grafo
+grafo <- graph_from_data_frame(sin_data_2)
+
+# seteo tipo de nodos. si es paquete le pongo tipo 1.
+V(grafo)$type <- V(grafo)$name %in% sin_data_2$tipo_paquete
+
+# realizo la proyeccion del grafo sobre tipo 1.
+proj <- bipartite.projection(graph = grafo)
+
+# renombro
+proj_datos <-  proj$proj1
+
+# cuantos datos tiene cada vertice
+V(proj_datos)$size <- as_tibble( V(proj_datos)$name) %>% 
+  left_join(sin_data_2,by=c("value"="conjunto")) %>% 
+  pull(data_cantidad) 
+
+# a que paquete paertenece cada vertice
+V(proj_datos)$group <-  as_tibble( V(proj_datos)$name) %>% 
+  left_join(sin_data_2,by=c("value"="conjunto")) %>% 
+  pull(paquete) 
+
+# se puede hacer mas facil pero ahora demore mucho , 
+# creo que haciendolo con tidygraph puede se rmucho mas ameno
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# para hacer el plot
+ggraph_datos <- ggraph(proj_datos) + 
+    # geom_node_voronoi(aes(fill = group), max.radius = 0.15, colour = 'white') +
+  geom_edge_link(colour = 'grey') + 
+  geom_node_point( aes(size = size,colour=group)) +
+  geom_node_text(aes(label=name),
+                 # nudge_y = 0.05,
+                 repel = TRUE)+
+      theme_graph()+
+  labs(title="Conjuntos de datos en el paquete 'datos'",
+       color="paquete contenedor",size="# datos",
+       caption="#DatosDeMieRcoles")
+  
+
+ggsave(filename = "ggraph_datos.png",plot = ggraph_datos,width = 10,height = 5)
+
+```
+
+# tweet: 
+
+
+2019-10-02 #DatosdeMieRcoles #rstats_ES #rstatsES Tweets: #LatinR2019!
+arme un grafo animado de como fueron conectandose en el tiempo las cuentas.
+arme bins cada 6 hs tomando el piso (ej: de 6 a 12. va para las 6.)
+destaque las cuentas que son de Rladies en color violeta. 
+y mayor cantidad de interacciones en tamaño. ( solo total ) 
+Espero guste . :D
+gracias @TuQmano por los datos :D !
+codigo: 
+
+## comunicar: 
+
+jugue con tidygraph, gggraph y gganimate 
+
+me re desvirtue en tiempo porque no tenia objetivo claro y no recordaba varias cosas :p 
+
+### recursos: 
+
+
+https://www.data-imaginist.com/2017/introducing-tidygraph/
+https://www.data-imaginist.com/2019/1-giraffe-2-giraffe-go/
+https://stackoverflow.com/questions/47175541/plot-labels-for-specific-geom-node-text
