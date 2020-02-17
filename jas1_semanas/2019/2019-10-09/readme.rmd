@@ -1,0 +1,163 @@
+---
+title: "Datos de miercoles, desafío: Semana 2019-09-25 Semana libre 2: #LatinR2019 !"
+author: "julio"
+date: "17-09-2019"
+output: html_document
+---
+
+# Datos de miercoles, desafio: Semana 2019-09-25 Semana libre 2: #LatinR2019 !
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+2019-09-25 Semana libre 2: #LatinR2019!
+
+Para festejar uno de los grandes logros de @r4ds_es vamos a usar los datos del paquete "datos" !
+que hacen traducciones de paquetes clasicos
+
+## importar
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(datos)# ; install.packages("datos")
+# library(tidytext)
+library(tidyverse)
+# library(pacman)
+
+# library(igraph)
+# library(ggraph)
+# 
+# # levantando dependencias :P, sacando los nombres.
+# paqus_pre <- paquetes_requeridos %>%
+#   janitor::clean_names()
+# 
+# 
+# paqus <- paqus_pre %>%
+#   distinct(paquete) %>% pull()
+# 
+# pacman::p_load(paqus) # levantando las dependencias
+library(tidyquant)
+library(feasts)#; install.packages("feasts")
+```
+
+
+
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+estaciones <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-10-09/estaciones.csv",locale = locale(encoding ="latin1" ))
+meteo <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-10-09/meteo.csv", na = "-99.9",locale = locale(encoding ="latin1" ))
+```
+
+## ver datos
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+estaciones %>% head()
+meteo %>% head()
+meteo_all <- meteo %>% left_join(estaciones)
+```
+
+## detalles datos
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+estaciones %>% skimr::skim()
+meteo %>% skimr::skim()
+```
+
+candlesticks ? tmax, tmin, y color correspondeinte a precipitacion ?
+
+pruebo con una estacion y luego otras. 
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+meteo_all %>% 
+    nest(-id_estacion) %>% 
+    mutate(tiene_faltantes=purrr::map(data,anyNA)) %>% 
+    unnest(tiene_faltantes) %>% 
+    filter(!tiene_faltantes)
+
+```
+
+
+1 sola estacion con datos completos O_O! buenisimo par aprobar con esa xD ! 
+candlesticks no queda lindo y son muchos datos, vamos por line comun
+
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+datos_estacion <- meteo_all %>% 
+    filter(id_estacion==11033) %>% 
+    gather(key="variable",value="valor",t_min,t_max,precipitacion) #%>% 
+    # filter(year(fecha)==1960) %>% 
+    
+
+titulo <-  datos_estacion %>% distinct(nombre,id_estacion) %>% 
+    mutate(titulo=paste0("Datos de la estación: ",nombre," (",id_estacion,")")) %>% 
+    pull(titulo)
+    
+ datos_estacion %>%    
+    ggplot(aes(x=fecha,y=valor,colour=variable))+
+    geom_line()+
+     # geom_smooth()+
+    facet_grid(variable~.,scales = "free_y")+
+    theme_light()+
+    labs(title=titulo,
+         caption="#DatosDeMieRcoles",
+         x="",y="")
+        # geom_candlestick(aes(open = t_min,
+        #                  high = t_max,
+        #                  low = t_min,
+        #                  close = t_max),alpha=0.5)
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+# library(tsibbledata)#; install.packages("tsibbledata")
+# tsibbledata::aus_production %>% glimpse()
+# meteo_all %>% glimpse()
+
+meteo_all %>% 
+    as_tsibble(key = id_estacion,index=fecha) %>% 
+    filter(id_estacion==11033) %>%
+    gg_season(precipitacion)
+
+
+```
+
+
+# tweet: 
+
+
+2019-09-25 #DatosdeMieRcoles #rstats_ES #rstatsES Semana libre 2: #LatinR2019!
+Para festejar uno de los grandes logros de @R4DS_es vamos a explorar paquete "datos" !
+donde se hacen traducciones de paquetes clasicos.
+vemos novedades en grupo de paquete = NA, o sea que no estan asociados a paquetes anteriores :U
+investigando un poco mas , son traducciones de grupos de palabras no eran datasets :D !
+
+## comunicar: 
+
+jugue con ggraph 
+
+me re desvirtue en tiempo porque no tenia objetivo claro y no recordaba varias cosas :p 
+
+### recursos: 
+
+
+https://www.data-imaginist.com/2017/introducing-tidygraph/
+https://www.data-imaginist.com/2019/1-giraffe-2-giraffe-go/
+https://stackoverflow.com/questions/47175541/plot-labels-for-specific-geom-node-text

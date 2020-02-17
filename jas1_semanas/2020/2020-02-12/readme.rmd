@@ -1,0 +1,213 @@
+---
+title: "Datos de miercoles, desafío: Semana 2020-02-16: Corona virus!"
+author: "julio"
+date: "16-02-2020"
+output: html_document
+---
+
+# Datos de miercoles, desafío: Semana 2020-02-16: Corona virus
+
+Hacelo simple  ! ( Keep it simple )
+
+## Objectivos: 
+
+**general:**
+
+* trabajar en datos diferentes, 
+* practicar, 
+* mejorar en mi flujo de trabajo,
+* mejorar mis habilidades: Importar, limpiar, entender ( transformar, visualizar, modelar ) , comunicar
+
+** Esta semana **
+
+
+
+## Detalles:
+
+2020-02-16, coronavirus. 1er dataset 2020.
+
+
+## importar
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(pacman) # libreria para cargar / instalar paquetes
+
+paquetes_cargar <- c('tidyverse','skimr','lubridate','janitor','slider','tsibble','stringr' )
+pacman::p_load(char=paquetes_cargar)
+
+```
+
+
+
+
+# explorar
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+
+confirmados <- readr::read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/archived_data/time_series/time_series_2019-ncov-Confirmed.csv")
+
+muertes <- readr::read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/archived_data/time_series/time_series_2019-ncov-Deaths.csv")
+
+recuperados <- readr::read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/archived_data/time_series/time_series_2019-ncov-Recovered.csv")
+```
+
+veamos columnas
+
+```{r echo=TRUE,message=FALSE,warning=FALSE}
+confirmados %>% colnames()
+```
+tiene un monton de columnas, y ademas nombres sucios.
+se ve que est alas fechas en cada columna por eso lo vamos a convertir a filas
+y luego limpiamos los nombres
+
+
+```{r echo=TRUE,message=FALSE,warning=FALSE}
+confirmados_largo <- confirmados %>% 
+    pivot_longer(cols = -c(`Province/State`,`Country/Region`,`Lat`,`Long`),
+                 names_to = "fecha_registro_crudo", values_to = "cantidad") %>% 
+    mutate(fecha_registro = lubridate::mdy_hm(fecha_registro_crudo)) %>% 
+    janitor::clean_names()
+
+```
+
+
+
+```{r echo=TRUE,message=FALSE,warning=FALSE}
+confirmados_largo %>% skimr::skim()
+```
+
+
+vamos a hacer algo visual como se mueve la ventana de casos por tiempo , le vamos a poner un slide de 6 horas. 
+agrupando por provincia/estado
+
+```{r echo=TRUE,message=FALSE,warning=FALSE}
+media_agregada_hs <- confirmados_largo %>% 
+    mutate(agrupar_6_horas=lubridate::floor_date(fecha_registro,unit = "6 hour",week_start = 1)) %>% 
+    group_by(country_region,province_state,agrupar_6_horas) %>% 
+    summarise(cant_media_6_hs=mean(cantidad,na.rm = TRUE),maxima_cantidad=max(cantidad,na.rm = TRUE)) %>% 
+    # select(-fecha_registro_crudo,-long,-lat) %>% 
+    # as_tsibble(key = c(country_region,province_state),index=agrupar_6_horas) %>% 
+    as_tsibble(key = c(country_region,province_state),index=agrupar_6_horas) %>% 
+    group_by_key() %>% 
+    mutate(media_agregada_6_horas=slider::slide(.x = cant_media_6_hs,.f = mean,.step = 2, .before = 2, .complete = TRUE)) %>% 
+    unnest(media_agregada_6_horas)
+    
+    # mutate(agrpuar_6_horas=lubridate::round_date(fecha_registro,unit = "6 hour",week_start = 1))
+    # slider::slide(.x = cant,.f = mean,.step = 6, .before = 6, .complete = TRUE))
+# slider::slide_period()
+```
+
+
+```{r echo=TRUE,message=FALSE,warning=FALSE}
+
+min_fecha <- confirmados_largo$fecha_registro %>% min(na.rm = TRUE)
+max_fecha <- confirmados_largo$fecha_registro %>% max(na.rm = TRUE)
+cantidad_total <- confirmados_largo$cantidad %>% max(na.rm = TRUE)
+plot_out <- media_agregada_hs %>%  
+    filter(stringr::str_detect(stringr::str_to_lower(country_region),"china")) %>% # solo china
+    ungroup() %>% 
+    mutate(province_state=forcats::fct_reorder(province_state,maxima_cantidad,.desc=TRUE)) %>% 
+    ggplot(aes(x=agrupar_6_horas,y=cant_media_6_hs,color=province_state))+
+    geom_line()+
+    # geom_line(aes(y=media_agregada_6_horas))+
+    facet_grid(province_state~.,scales = "free_y")+
+    scale_x_datetime(date_breaks = "1 day", date_labels = "%Y-%m-%d")+
+    theme_light()+
+    theme(legend.position = "none",
+          axis.text.x = element_text(angle=90),
+          strip.text.y = element_text(angle = 360))+
+    labs(title="Evolución CoronaVirus, media de casos confirmados cada 6 hs en China",
+         subtitle = paste0(min_fecha ,"-",max_fecha),
+     caption="#DatosDeMieRcoles",
+     x="",y="")
+    
+
+
+ggsave("tmp_1.png",plot = plot_out,units = "cm",#)#,
+       height = 50)
+
+
+    
+```
+```{r}
+media_agregada_hs_paises <- confirmados_largo %>% 
+    mutate(agrupar_6_horas=lubridate::floor_date(fecha_registro,unit = "6 hour",week_start = 1)) %>% 
+    group_by(country_region,agrupar_6_horas) %>% 
+    summarise(cant_media_6_hs=mean(cantidad,na.rm = TRUE),maxima_cantidad=max(cantidad,na.rm = TRUE)) %>% 
+    # select(-fecha_registro_crudo,-long,-lat) %>% 
+    # as_tsibble(key = c(country_region,province_state),index=agrupar_6_horas) %>% 
+    as_tsibble(key = c(country_region),index=agrupar_6_horas) %>% 
+    group_by_key() %>% 
+    mutate(media_agregada_6_horas=slider::slide(.x = cant_media_6_hs,.f = mean,.step = 2, .before = 2, .complete = TRUE)) %>% 
+    unnest(media_agregada_6_horas)
+    
+    # mutate(agrpuar_6_horas=lubridate::round_date(fecha_registro,unit = "6 hour",week_start = 1))
+    # slider::slide(.x = cant,.f = mean,.step = 6, .before = 6, .complete = TRUE))
+# slider::slide_period()
+```
+
+```{r echo=TRUE,message=FALSE,warning=FALSE}
+
+min_fecha <- confirmados_largo$fecha_registro %>% min(na.rm = TRUE)
+max_fecha <- confirmados_largo$fecha_registro %>% max(na.rm = TRUE)
+cantidad_total <- confirmados_largo$cantidad %>% max(na.rm = TRUE)
+plot_out <- media_agregada_hs_paises %>%  
+    # filter(stringr::str_detect(stringr::str_to_lower(country_region),"china")) %>% # solo china
+    ungroup() %>% 
+    mutate(country_region=forcats::fct_reorder(country_region,maxima_cantidad,.desc=TRUE)) %>% 
+    ggplot(aes(x=agrupar_6_horas,y=cant_media_6_hs,color=country_region))+
+    geom_line()+
+    # geom_line(aes(y=media_agregada_6_horas))+
+    facet_grid(country_region~.,scales = "free_y")+
+    scale_x_datetime(date_breaks = "1 day", date_labels = "%Y-%m-%d")+
+    theme_light()+
+    theme(legend.position = "none",
+          axis.text.x = element_text(angle=90),
+          strip.text.y = element_text(angle = 360))+
+    labs(title="Evolución CoronaVirus, media de casos confirmados cada 6 hs en Mundo",
+         subtitle = paste0(min_fecha ,"-",max_fecha),
+     caption="#DatosDeMieRcoles",
+     x="",y="")
+    
+
+
+ggsave("tmp_2.png",plot = plot_out,units = "cm",#)#,
+       height = 35)
+
+
+    
+```
+
+
+Buen , despues de largo tiempo desemplove un poco trabajar con plots. 
+claramente hace falta ejercitacion mas seguida. 
+por suerte hice tantos plots antes que sabia donde buscar :D
+
+igual falta, 
+no pude lograr armar lo de slider que me gustaria.
+que es el gif: https://cran.r-project.org/web/packages/tsibble/readme/man/figures/animate-1.gif
+
+si pude armar las sliding windows, pero no tenian sentido dado que los valores estaban sumarizados a 6 hs antes. 
+
+ademas como no todos los casos de la linea e tiempo estan completos complicaba las cosas agregar todos los vacios
+era demasiados registros NA. 
+
+queda para otro momento. demasiado tiempo invertido en la vuelta :p 
+
+ademas no quedaron publicables, por hace rla media cad a6 hs ... 
+
+si ves a nivel mundial queda china arriba, pero solo dice 2000. 
+mientras que si ves el grafico de china, 
+
+ves como la media se comio los extremos de las diferentes provincias que tuvieron un brote masivo. 
+
+otra cosa uqe estaba interesante hacer era la parte de grafos, de quien engancha a quien, sin embargo no tenes claro eso 
+
+podrias decir que a partir de quien inicia podrias empezar a hace run grafo dirigido apuntando a los que sigen a la siguiente hora. 
+como para ver de donde a donde se va moviendo todo. igual cuando empezas a tener multiples se va todo al pasto porque podria ser cualquier con cualquiera. 
+
+pero en las primeras horas esta bueno verlo. 
+
+
