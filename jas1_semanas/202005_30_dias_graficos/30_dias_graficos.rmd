@@ -1,0 +1,311 @@
+---
+title: "30 dias de graficos"
+author: "Julio Spairani"
+date: "5/15/2020"
+output: html_document
+---
+
+Para retomar y practicar visualizaciones voy a hacer este challenge:
+
+https://twitter.com/R4DS_es/status/1259611323069071360
+
+![Challenge](30_dias_graficos.jpeg){#id .class width=1024px height=512px}
+
+
+tambien voy a hacer en R y python desde rstudio.
+Ver el paquete reticulate, y configuracion y como lo manejo en ambos lenguajes para que funcione desde rstudio todo en un rmd. 
+
+Reticulate: 
+https://rstudio.github.io/reticulate/index.html
+
+por mas que te digan que engancha de una con use_python o conda_env, no funciona. tuve que setear el archivo .Renviron en el home de mi usuario. apuntando al python que queria usar.
+
+las librerias de python las instale desde consola con conda install nombre_libreria
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libs}
+# para el gestor de paquetes pacman
+if(!require(pacman)){
+  install.packages("pacman")  
+}
+# el p_load: hace lo de require y si no lo encuentra lo va a instalar.
+pacman::p_load("here")
+
+here_path <- here::here()
+output_path <- paste0(here_path,"/jas1_semanas/202005_30_dias_graficos")
+```
+
+# levantando python
+```{r python_setup}
+# para tenerlo al dia: ver version en: https://www.python.org/downloads/
+# ver como lo updateo desde conda: https://stackoverflow.com/questions/58568175/upgrade-to-python-3-8-using-conda
+
+# updateo conda
+# conda update -n base -c defaults conda
+# cro enviornment nuevo para el nuevo python
+# conda create -n python38 python=3.8
+# activo el nuevo env
+# conda activate python38
+# verifico que python esta en la nueva version
+# python --version
+#Sys.setenv(RETICULATE_PYTHON = "/home/julio/anaconda3/envs/python38/bin/python")
+pacman::p_load("reticulate") # install.packages("reticulate")
+
+# nada de esto funciona, asi que hice lo de crear el archivo .Renviron 
+# con la linea: RETICULATE_PYTHON="/path/to/python3" 
+# en el home del usuario o sea: 
+# cd ~
+# touch .Renviron 
+# vi .Renviron
+# # pegar en el vi: RETICULATE_PYTHON="/home/julio/anaconda3/envs/python38/bin/python"
+# esc, wq 
+# reiniciar el rstudio
+# volver a correr este chunk
+# verificar via reticulate::py_config()
+# python_path <- "/home/julio/anaconda3/envs/python38/bin/python"
+# python_path <- "/home/julio/anaconda3/envs/python38"
+# reticulate::use_python(python = python_path,required = TRUE)
+# reticulate::use_condaenv(condaenv = "python38",required = TRUE)
+# Sys.which("python")
+# Sys.unsetenv("python")
+# Sys.which("python")
+# Sys.setenv("python"=python_path)
+# Sys.which("python")
+reticulate::py_config()
+
+```
+
+## 20200512: DIA 1: BARRAS / COLUMNAS
+
+```{python plot_1_py}
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+# import matplotlib as sns
+#sys.which("python")
+# con r.here_path , uso la variable here_path que defini en R
+ruta_a_fuente_de_datos = r.here_path + "/datos/2019/2019-04-10/partidos.txt"
+
+partidos = pd.read_csv(ruta_a_fuente_de_datos,delimiter="\t")
+#partidos.head()
+
+# plt.figsize=(10,1)
+sns.set_style('whitegrid')
+plot_1 = sns.countplot(data=partidos,x="anio")
+plot_1.set_title('Cantidad de Partidos por Año\nCopas Mundiales de Fútbol Masculino',loc='left')
+plot_1.set_aspect(0.1)
+plot_1.set_xlabel('')
+plot_1.set_ylabel('Cantidad')
+
+# https://www.drawingfromdata.com/how-to-rotate-axis-labels-in-seaborn-and-matplotlib
+plot_1.set_xticklabels(labels=plot_1.get_xticklabels(),rotation=45)
+
+# https://python-graph-gallery.com/193-annotate-matplotlib-chart/
+plt.text(5,-30, '#30díasdegráficos #datosdemiercoles #rstatsES #rstats', fontsize=12)
+
+
+plot_1
+```
+```{r plot_1_r}
+pacman::p_load("tidyverse")
+
+# para practicar el cross language: 
+plot_1_data <- readr::read_tsv(py$ruta_a_fuente_de_datos)
+
+plot_1_data %>% 
+    mutate(anio=as.factor(anio)) %>% 
+    count(anio) %>% 
+    ggplot(aes(x=anio,y=n,fill=anio)) +
+    geom_col()+
+    labs(title = 'Cantidad de Partidos por Año',
+         subtitle = 'Copas Mundiales de Fútbol Masculino',
+         x='',
+         y='Cantidad',
+         caption="#30díasdegráficos #datosdemiercoles #rstatsES #rstats")+
+    theme_light()+
+    theme(axis.text.x = element_text(angle=45,vjust = 0.5),
+          legend.position = "none")
+
+```
+
+
+## 20200513: DIA 2: LINEAS
+
+```{python plot_2_py_data}
+
+
+
+```
+```{python plot_2_py_tmp}
+
+
+```
+
+```{r plot_2_r}
+# https://www.r-bloggers.com/using-rvest-to-scrape-an-html-table/
+
+# https://es.wikipedia.org/wiki/Anexo:Parques_nacionales_de_Argentina
+# https://en.wikipedia.org/wiki/List_of_national_parks_of_Argentina
+
+pacman::p_load(char = c("tidyverse","janitor","ggrepel"))
+#install.packages("janitor")
+datos_extra_parques_path <- paste0(output_path,"/datos_extra_parques_nacionales_wikipedia.txt")
+datos_extra_parques_path_html <- paste0(output_path,"/datos_extra_parques_nacionales_wikipedia.html")
+
+if(!file.exists(datos_extra_parques_path_html)){
+  table_url_en <- "https://en.wikipedia.org/wiki/List_of_national_parks_of_Argentina"
+  table_url_es <- "https://es.wikipedia.org/wiki/Anexo:Parques_nacionales_de_Argentina"
+  table_xpath_en <- "/html/body/div[3]/div[3]/div[4]/div/center/table"
+  table_xpath_es <- "/html/body/div[3]/div[3]/div[4]/div/table[2]"
+  
+  # por si tenes que parsear mas de 1 vez es mejor bajar la pagina.
+  raw_file <- table_url_es %>%
+    xml2::read_html() %>% 
+    xml2::write_html(file=datos_extra_parques_path_html)
+}
+
+if (!file.exists(datos_extra_parques_path)) {
+  
+parques_nacionales_argentinos <- datos_extra_parques_path_html %>%
+    xml2::read_html() %>%
+    html_nodes(xpath=table_xpath_es) %>%
+    html_table(dec = ",") # porque esta en separador de miles el . 
+  datos_extra_parques_nacionales <- parques_nacionales_argentinos[[1]]  %>% 
+    janitor::clean_names() %>% 
+    mutate(area_hectareas=str_remove(area_hectareas,pattern = fixed(".")))
+  
+  readr::write_tsv(x=datos_extra_parques_nacionales,path = datos_extra_parques_path)
+}
+
+datos_extra_parques_nacionales <- readr::read_tsv(datos_extra_parques_path,col_types = ) %>% janitor::clean_names() %>% 
+  mutate(fecha_creacion_str=stringr::str_extract(string = creacion_n_1,pattern = "\\d{4}-\\d{2}-\\d{2}")) %>% 
+  mutate(fecha_creacion=lubridate::ymd(fecha_creacion_str)) %>% 
+  select(nombre,fecha_creacion,area_hectareas)
+
+datos_extra_parques_nacionales
+
+```
+
+
+```{r plot_2_r_2 fig.width=12, fig.height=6}
+
+output_r_2 <- paste0(output_path,"/plot_2_r.png")
+
+
+plot_line_2 <- datos_extra_parques_nacionales %>% 
+  arrange(fecha_creacion) %>% 
+  group_by(fecha_creacion) %>% 
+  summarise(nombres=paste0(nombre,collapse = "\n"),hectareas_protegidas=sum(area_hectareas)) %>% 
+  mutate(total_hectareas_acumuladas=cumsum(hectareas_protegidas)) %>% 
+  ggplot(aes(x=fecha_creacion,y=total_hectareas_acumuladas/1000,label=nombres))+
+    geom_line( color= "#62b177")+
+    geom_point(color="#41779e", alpha=0.5,aes(size=hectareas_protegidas))+
+    geom_label_repel(size=3,
+                     segment.alpha=0.5,
+                     min.segment.length = 0.1,
+                     
+                     alpha=0.75,
+                     color="#41779e",
+                     fill="#cdd9a1")+
+    scale_x_date(date_breaks = "5 years",date_labels = "%Y")+
+    theme_light()+
+  theme(legend.position = "none",
+        strip.text.y = element_text(angle = 360),
+        axis.text.x = element_text(angle=90)) +
+  labs(x="Fecha Creación Parque", 
+       y = "Areas protegidas Acumuladas ( 1000 hectareas)",
+       title="Evolución de Areas Protegidas como Parque Nacional en Argentina",
+       caption="#30díasdegráficos #datosdemiercoles #rstatsES #rstats")
+
+ggsave(plot = plot_line_2,filename = output_r_2,units = "cm", width = 30,height = 15)
+# https://www.color-hex.com/color-palette/90827
+# https://www.color-hex.com/color-palette/92432
+  
+```
+
+## 20200514: DIA 3: PUNTOS / BURBUJAS
+
+```{python plot_3_py}
+```
+
+```{r plot_3_r}
+
+```
+
+## 20200515: DIA 4: GRAFICOS CON FACETAS
+
+```{python plot_4_py}
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+# import matplotlib as sns
+#sys.which("python")
+# con r.here_path , uso la variable here_path que defini en R
+ruta_a_fuente_de_datos = r.here_path + "/datos/2019/2019-09-11/incendios_pais.csv"
+
+# incendios_pais <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-09-11/incendios_pais.csv")
+
+
+incendios_pais = pd.read_csv(ruta_a_fuente_de_datos,delimiter=",")
+#ruta_a_fuente_de_datos
+
+# partidos[(partidos["equipo_1"] == "Argentina")| (partidos["equipo_2"] == "Argentina")]
+#incendios_pais.head()
+
+# group by fecha: 
+
+# plt.figsize=(10,1)
+# sns.set_style('whitegrid')
+# plot_1 = sns.lineplot(data=partidos,x="anio")
+# plot_1.set_title('Cantidad de Partidos por Año\nCopas Mundiales de Fútbol Masculino',loc='left')
+# plot_1.set_aspect(0.1)
+# plot_1.set_xlabel('')
+# plot_1.set_ylabel('Cantidad')
+# 
+# # https://www.drawingfromdata.com/how-to-rotate-axis-labels-in-seaborn-and-matplotlib
+# plot_1.set_xticklabels(labels=plot_1.get_xticklabels(),rotation=45)
+# 
+# # https://python-graph-gallery.com/193-annotate-matplotlib-chart/
+# plt.text(5,-30, '#30díasdegráficos #datosdemiercoles #rstatsES', fontsize=12)
+# 
+# 
+# plot_1
+
+```
+
+```{r plot_4_r}
+library(tidyverse)
+datos_lineas <- readr::read_csv(py$ruta_a_fuente_de_datos)
+datos_lineas_agrupados <- datos_lineas %>% 
+  # filtro segun cuenca del amazonas
+  # https://es.wikipedia.org/wiki/Cuenca_del_Amazonas
+  filter(pais %in% c("Brasil", "Peru", "Colombia", "Bolivia", "Ecuador", "Venezuela", "Guyana" , "Suriname" )) %>% 
+  select(fecha,pais,intensidad) %>% group_by(fecha,pais) %>% summarise(intensidad_promedio_diario=mean(intensidad),cantidad=n())
+
+datos_lineas_agrupados %>% 
+  ggplot(aes(x=fecha,y=intensidad_promedio_diario,color=pais)) +
+  geom_line() +
+  scale_x_date(date_breaks = "15 days")+
+  facet_grid(pais~.)+
+  theme_light()+
+  theme(legend.position = "none",
+        strip.text.y = element_text(angle = 360),
+        axis.text.x = element_text(angle=90)) +
+  labs(x="", 
+       y = "intensidad de incendio (promedio diario)",
+       title="Intensidad de Incendios por País")
+```
+
+## 20200516: DIA 5: DIAGRAMAS DE ARCO
+
+```{python plot_5_py}
+```
+
+```{r plot_5_r}
+```

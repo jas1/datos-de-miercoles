@@ -1,0 +1,37 @@
+nombre	imagen	provincia_coordenadas	creacion_n_1	area_hectareas	visitantes_2016	ref
+Aconquija	NA	Tucumán27°11′S 65°57′O﻿ / ﻿-27.19, -65.95	02018-08-22 22 de agosto de 2018	74585	3441 !3.441	[2]​[3]​
+Baritú	NA	Salta22°35′S 64°37′O﻿ / ﻿-22.58, -64.62	01974-04-24 24 de abril de 1974	72439	277 !277	[4]​
+Bosques Petrificadosde Jaramillo	NA	Santa Cruz47°40′S 68°05′O﻿ / ﻿-47.67, -68.09	02012-12-27 27 de diciembre de 2012	78543	3729 !3.729	[5]​
+Calilegua	NA	Jujuy23°41′S 64°47′O﻿ / ﻿-23.69, -64.79	01979-07-25 25 de julio de 1979	76306	13325 !13.325	[6]​
+Campos del Tuyú	NA	Buenos Aires36°21′S 56°52′O﻿ / ﻿-36.35, -56.87	02009-06-04 4 de junio de 2009	3040	0 !No se admiten visitas	[7]​
+Chaco	NA	Chaco26°50′S 59°40′O﻿ / ﻿-26.83, -59.66	01954-10-22 22 de octubre de 1954	14981	7750 !7.750	[8]​
+Ciervo de los Pantanos	NA	Buenos Aires34°14′03″S 58°53′10″O﻿ / ﻿-34.2342, -58.8861	02018-10-29 29 de octubre de 2018	5200	10558 !10.558	[9]​
+Copo	NA	Santiago del Estero25°51′S 61°55′O﻿ / ﻿-25.85, -61.91	02000-12-28 28 de diciembre de 2000	118119	170 !170	[10]​
+El Impenetrable	NA	Chaco24°59′S 61°05′O﻿ / ﻿-24.99, -61.08	02014-10-30 30 de octubre de 2014	128000	0 !No se admiten visitas	[11]​
+El Leoncito	NA	San Juan31°55′S 69°14′O﻿ / ﻿-31.92, -69.24	02002-10-15 15 de octubre de 2002	89706	19752 !19.752	[12]​
+El Palmar	NA	Entre Ríos31°52′S 58°15′O﻿ / ﻿-31.87, -58.25	01965-11-30 30 de noviembre de 1965	8213	123161 !123.161	[13]​
+El Rey	NA	Salta24°40′S 64°38′O﻿ / ﻿-24.67, -64.63	01948-07-02 2 de julio de 1948	44162	722 !722	[14]​[15]​
+Iberá	NA	Corrientes27°56′S 56°56′O﻿ / ﻿-27.93, -56.93	02018-12-05 5 de diciembre de 2018	135000	0 !Sin dato oficial	[16]​
+Iguazú	NA	Misiones25°38′S 54°20′O﻿ / ﻿-25.64, -54.34	01934-10-29 29 de octubre de 1934	67620	1024558 !1.024.558	[17]​[18]​
+Islas de Santa Fe	NA	Santa Fe32°16′S 60°43′O﻿ / ﻿-32.27, -60.71	02010-11-15 15 de noviembre de 2010	4096	0 !No se admiten visitas	[19]​
+Lago Puelo	NA	Chubut42°10′S 71°41′O﻿ / ﻿-42.17, -71.69	01971-11-16 16 de noviembre de 1971	27675	43701 !43.701	[20]​[21]​
+Laguna Blanca	NA	Neuquén39°02′S 70°21′O﻿ / ﻿-39.03, -70.35	01945-05-29 29 de mayo de 1945	11251	3215 !3.215	[22]​[23]​
+Lanín	NA	Neuquén39°53′S 71°29′O﻿ / ﻿-39.89, -71.48	01945-05-29 29 de mayo de 1945	412003	110788 !110.788	[22]​[24]​
+Lihué Calel	NA	La Pampa37°57′S 65°37′O﻿ / ﻿-37.95, -65.61	01976-06-08 8 de junio de 1976	32500	5399 !5.399	[25]​[26]​
+Los Alerces	NA	Chubut42°52′S 71°52′O﻿ / ﻿-42.87, -71.87	01945-05-29 29 de mayo de 1945	263000	137362 !137.362	[22]​[27]​
+Los Arrayanes	NA	Neuquén40°50′S 71°37′O﻿ / ﻿-40.83, -71.61	01971-11-16 16 de noviembre de 1971	1796	0 !Sin dato oficial	[20]​[28]​
+Los Cardones	NA	Salta25°17′S 65°55′O﻿ / ﻿-25.28, -65.92	01996-12-13 13 de diciembre de 1996	64117	24557 !24.557	[29]​
+Los Glaciares	NA	Santa Cruz50°00′S 73°08′O﻿ / ﻿-50.00, -73.13	01945-05-29 29 de mayo de 1945	726927	693584 !693.584	[22]​[30]​
+Mburucuyá	NA	Corrientes28°01′S 58°04′O﻿ / ﻿-28.02, -58.07	02002-01-17 17 de enero de 2002	17086	4542 !4.542	[31]​
+Monte León	NA	Santa Cruz50°20′S 68°54′O﻿ / ﻿-50.34, -68.90	02004-11-10 10 de noviembre de 2004	62169	7474 !7.474	[32]​
+Nahuel Huapi	NA	Río Negro y  Neuquén40°52′S 71°29′O﻿ / ﻿-40.87, -71.49	01934-10-29 29 de octubre de 1934	717261	399758 !399.758	[17]​[33]​
+Patagonia	NA	Santa Cruz47°10′S 71°19′O﻿ / ﻿-47.16, -71.32	02015-01-21 21 de enero de 2015	52811	0 !No se admiten visitas	[34]​
+Perito Moreno	NA	Santa Cruz47°55′S 72°15′O﻿ / ﻿-47.92, -72.25	01945-05-29 29 de mayo de 1945	142120	918 !918	[22]​[35]​
+Predelta	NA	Entre Ríos32°09′S 60°38′O﻿ / ﻿-32.15, -60.63	01992-01-13 13 de enero de 1992	2608	4402 !4.402	[36]​
+Quebrada del Condorito	NA	Córdoba31°40′S 64°46′O﻿ / ﻿-31.67, -64.77	01996-12-19 19 de diciembre de 1996	35396	20009 !20.009	[37]​
+Río Pilcomayo	NA	Formosa25°03′S 58°08′O﻿ / ﻿-25.05, -58.13	01951-10-17 17 de octubre de 1951	51889	9843 !9.843	[38]​
+San Guillermo	NA	San Juan29°19′S 69°17′O﻿ / ﻿-29.31, -69.29	01999-01-13 13 de enero de 1999	166000	57 !57	[39]​
+Sierra de las Quijadas	NA	San Luis32°33′S 67°07′O﻿ / ﻿-32.55, -67.12	01991-12-10 10 de diciembre de 1991	73785	22796 !22.796	[40]​
+Talampaya	NA	La Rioja29°54′S 68°01′O﻿ / ﻿-29.90, -68.01	01997-07-10 10 de julio de 1997	215000	64558 !64.558	[41]​
+Tierra del Fuego	NA	Tierra del Fuego54°39′S 68°28′O﻿ / ﻿-54.65, -68.47	01960-10-25 25 de octubre de 1960	68909	167535 !167.535	[42]​
+Traslasierra	NA	Córdoba31°09′S 65°29′O﻿ / ﻿-31.15, -65.49	02018-04-18 18 de abril de 2018	105000	No se admiten visitas	[43]​
