@@ -1,7 +1,7 @@
 ---
 title: "30 dias de graficos"
 author: "Julio Spairani"
-date: "5/15/2020"
+date: "15/5/2020"
 output: html_document
 ---
 
@@ -48,13 +48,13 @@ output_path <- paste0(here_path,"/jas1_semanas/202005_30_dias_graficos")
 
 # updateo conda
 # conda update -n base -c defaults conda
-# cro enviornment nuevo para el nuevo python
+# creo enviornment nuevo para el nuevo python
 # conda create -n python38 python=3.8
 # activo el nuevo env
 # conda activate python38
 # verifico que python esta en la nueva version
 # python --version
-#Sys.setenv(RETICULATE_PYTHON = "/home/julio/anaconda3/envs/python38/bin/python")
+#Sys.setenv(RETICULATE_PYTHON = "/home/julio/anaconda3/envs/py38/bin/python")
 pacman::p_load("reticulate") # install.packages("reticulate")
 
 # nada de esto funciona, asi que hice lo de crear el archivo .Renviron 
@@ -63,13 +63,13 @@ pacman::p_load("reticulate") # install.packages("reticulate")
 # cd ~
 # touch .Renviron 
 # vi .Renviron
-# # pegar en el vi: RETICULATE_PYTHON="/home/julio/anaconda3/envs/python38/bin/python"
+# # pegar en el vi: RETICULATE_PYTHON="/home/julio/anaconda3/envs/py38/bin/python"
 # esc, wq 
 # reiniciar el rstudio
 # volver a correr este chunk
 # verificar via reticulate::py_config()
-# python_path <- "/home/julio/anaconda3/envs/python38/bin/python"
-# python_path <- "/home/julio/anaconda3/envs/python38"
+# python_path <- "/home/julio/anaconda3/envs/py38/bin/python"
+# python_path <- "/home/julio/anaconda3/envs/py38"
 # reticulate::use_python(python = python_path,required = TRUE)
 # reticulate::use_condaenv(condaenv = "python38",required = TRUE)
 # Sys.which("python")
@@ -308,4 +308,275 @@ datos_lineas_agrupados %>%
 ```
 
 ```{r plot_5_r}
+#https://linuxhint.com/install-tesseract-ocr-linux/
+#pacman::p_load("tesseract")
+# sudo apt install openjdk-[VERSION_NUMBER]-jdk
+# sudo R CMD javareconf
+# pacman::p_load ("rJava")
+#pacman::p_load ("tabulizer")
 ```
+
+
+
+## 20200516: DIA 5: DIAGRAMAS DE ARCO
+
+```{python plot_5_py}
+
+
+
+
+```
+
+```{r plot_5_r}
+#https://linuxhint.com/install-tesseract-ocr-linux/
+# pacman::p_load("tesseract")
+# 
+# 
+# tmp_titulo <- "## <<dia_fecha>>: DIA <<dia_nro>>: <<dia_titulo>>\n\n"
+# tmp_py <- "```{python plot_<<dia_nro>>_py}
+# ```\n\n"
+# tmp_r <-"```{r plot_<<dia_nro>>_r}
+# ```\n\n"
+# tmp_str <- (paste0(tmp_titulo,tmp_py,tmp_r))
+# listado_nombres <- readr::read_tsv(paste0(output_path,"/30_dias_graficos.txt")) %>% 
+#   janitor::clean_names() %>% 
+#   mutate(tmp_1=stringr::str_replace_all(tmp_str,"<<dia_fecha>>",as.character(fecha))) %>% 
+#   mutate(tmp_2=stringr::str_replace_all(tmp_1,"<<dia_nro>>",as.character(dia))) %>% 
+#   mutate(final=stringr::str_replace_all(tmp_2,"<<dia_titulo>>",titulo)) %>% 
+#   pull(final) %>% cat()
+  
+#   mutate(titulo = purrr::pmap(
+#   .l=list("d"=dia,
+#           "f"=fecha,
+#           "t"=titulo),
+#   .f=function(d,f,t){
+#     tmp_titulo <- "## <<dia_fecha>>: DIA <<dia_nro>>: <<dia_titulo>>\n\n"
+#     tmp_py <- "```{python plot_<<dia_nro>>_py}
+# ```\n\n"
+#     tmp_r <-"```{r plot_<<dia_nro>>_r}
+# ```\n\n"
+# #cat(paste0(tmp_titulo,tmp_py,tmp_r))
+#     todos <- paste0(tmp_titulo,tmp_py,tmp_r)
+#     
+#     
+#     t0 <- stringr::str_replace()
+#     
+#   }))
+
+# listado_nombres 
+
+# tesseract::ocr_data()
+# tabulizer::extract_areas()
+# tesseract::ocr_data(,engine = tesseract::tesseract(language="spa"))
+```
+
+
+## 20200517: DIA 6: gráficos de donut
+
+```{python plot_6_py}
+```
+
+```{r plot_6_r}
+```
+
+## 20200518: DIA 7: gráficos ridgeline
+
+```{python plot_7_py}
+```
+
+```{r plot_7_r}
+```
+
+## 20200519: DIA 8: gráficos de contorno
+
+```{python plot_8_py}
+```
+
+```{r plot_8_r}
+```
+
+## 20200520: DIA 9: gráficos de áreas apiladas
+
+```{python plot_9_py}
+```
+
+```{r plot_9_r}
+```
+
+## 20200521: DIA 10: explorar paletas de colores
+
+```{python plot_10_py}
+```
+
+```{r plot_10_r}
+```
+
+## 20200522: DIA 11: mapas de calor (heatmap)
+
+```{python plot_11_py}
+```
+
+```{r plot_11_r}
+```
+
+## 20200523: DIA 12: gráficos de paleta (lollipop)
+
+```{python plot_12_py}
+```
+
+```{r plot_12_r}
+```
+
+## 20200524: DIA 13: visualizar datos temporales
+
+```{python plot_13_py}
+```
+
+```{r plot_13_r}
+```
+
+## 20200525: DIA 14: gráficos de rectángulos (treemap)
+
+```{python plot_14_py}
+```
+
+```{r plot_14_r}
+```
+
+## 20200526: DIA 15: dendogramas
+
+```{python plot_15_py}
+```
+
+```{r plot_15_r}
+```
+
+## 20200527: DIA 16: gráficos de waffle
+
+```{python plot_16_py}
+```
+
+```{r plot_16_r}
+```
+
+## 20200528: DIA 17: diagramas de sankey
+
+```{python plot_17_py}
+```
+
+```{r plot_17_r}
+```
+
+## 20200529: DIA 18: visualizar datos espaciales
+
+```{python plot_18_py}
+```
+
+```{r plot_18_r}
+```
+
+## 20200530: DIA 19: gráficos de flujo (stream graph)
+
+```{python plot_19_py}
+```
+
+```{r plot_19_r}
+```
+
+## 20200531: DIA 20: redes
+
+```{python plot_20_py}
+
+
+
+```
+
+```{r plot_20_r}
+
+
+
+```
+
+## 20200601: DIA 21: gráficos con anotaciones
+
+```{python plot_21_py}
+```
+
+```{r plot_21_r}
+```
+
+## 20200602: DIA 22: visualizar datos textuales
+
+```{python plot_22_py}
+```
+
+```{r plot_22_r}
+```
+
+## 20200603: DIA 23: gráficos de proyeccion solar
+
+```{python plot_23_py}
+```
+
+```{r plot_23_r}
+```
+
+## 20200604: DIA 24: coropletas
+
+```{python plot_24_py}
+```
+
+```{r plot_24_r}
+```
+
+## 20200605: DIA 25: gráficos de violin
+
+```{python plot_25_py}
+```
+
+```{r plot_25_r}
+```
+
+## 20200606: DIA 26: diagrama de marimekko
+
+```{python plot_26_py}
+```
+
+```{r plot_26_r}
+```
+
+## 20200607: DIA 27: gráficos animados
+
+```{python plot_27_py}
+```
+
+```{r plot_27_r}
+```
+
+## 20200608: DIA 28: diagramas de cuerdas
+
+```{python plot_28_py}
+```
+
+```{r plot_28_r}
+```
+
+## 20200609: DIA 29: gráficos de coordenadas paralelas
+
+```{python plot_29_py}
+```
+
+```{r plot_29_r}
+```
+
+## 20200610: DIA 30: diagrama de área polar o de florence nightingale
+
+```{python plot_30_py}
+```
+
+```{r plot_30_r}
+```
+
+
+
+

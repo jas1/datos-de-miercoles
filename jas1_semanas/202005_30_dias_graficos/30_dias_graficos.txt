@@ -1,0 +1,31 @@
+día	fecha	título
+1	20200512	barras / columnas
+2	20200513	líneas
+3	20200514	Puntos / burbujas
+4	20200515	gráficos con facetas
+5	20200516	diagramas de arco
+6	20200517	gráficos de donut
+7	20200518	gráficos ridgeline
+8	20200519	gráficos de contorno
+9	20200520	gráficos de áreas apiladas
+10	20200521	explorar paletas de colores
+11	20200522	mapas de calor (heatmap)
+12	20200523	gráficos de paleta (lollipop)
+13	20200524	visualizar datos temporales
+14	20200525	gráficos de rectángulos (treemap)
+15	20200526	dendogramas
+16	20200527	gráficos de waffle
+17	20200528	diagramas de sankey
+18	20200529	visualizar datos espaciales
+19	20200530	gráficos de flujo (stream graph)
+20	20200531	redes
+21	20200601	gráficos con anotaciones
+22	20200602	visualizar datos textuales
+23	20200603	gráficos de proyeccion solar
+24	20200604	coropletas
+25	20200605	gráficos de violin
+26	20200606	diagrama de marimekko
+27	20200607	gráficos animados
+28	20200608	diagramas de cuerdas
+29	20200609	gráficos de coordenadas paralelas
+30	20200610	diagrama de área polar o de florence nightingale
