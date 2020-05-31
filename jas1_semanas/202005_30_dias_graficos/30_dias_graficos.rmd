@@ -11,6 +11,10 @@ https://twitter.com/R4DS_es/status/1259611323069071360
 
 ![Challenge](30_dias_graficos.jpeg){#id .class width=1024px height=512px}
 
+# recursos: 
+
+
+## R & Python
 
 tambien voy a hacer en R y python desde rstudio.
 Ver el paquete reticulate, y configuracion y como lo manejo en ambos lenguajes para que funcione desde rstudio todo en un rmd. 
@@ -23,6 +27,19 @@ por mas que te digan que engancha de una con use_python o conda_env, no funciona
 las librerias de python las instale desde consola con conda install nombre_libreria
 
 
+## datos extra
+
+reciclar de datos d emiercoles pero cambiar las visualizaciones o nuevos :p
+
+### parques nacionales argentinos
+
+https://en.wikipedia.org/wiki/List_of_national_parks_of_Argentina
+https://es.wikipedia.org/wiki/Anexo:Parques_nacionales_de_Argentina
+
+ 
+### distancias planetas:
+
+https://theplanets.org/distances-between-planets/
 
 
 ```{r setup, include=FALSE}
@@ -377,6 +394,7 @@ datos_lineas_agrupados %>%
 ```
 
 ```{r plot_6_r}
+
 ```
 
 ## 20200518: DIA 7: gráficos ridgeline
@@ -430,9 +448,35 @@ datos_lineas_agrupados %>%
 ## 20200524: DIA 13: visualizar datos temporales
 
 ```{python plot_13_py}
+#https://plotnine.readthedocs.io/en/stable/
 ```
 
 ```{r plot_13_r}
+
+# 
+#https://www.trading-for-everyone.com/acciones/glosario-de-empresas/panel-general/
+
+url_acciones <-  "https://www.trading-for-everyone.com/acciones/glosario-de-empresas/panel-general/"
+path_acciones_dl <- paste0(output_path,"/merval.html")
+
+if (!file.exists(path_acciones_dl) ) {
+  download.file(url_acciones,destfile =path_acciones_dl )  
+}
+
+merval_html <- xml2::read_html(path_acciones_dl)
+
+# class = "j-calltoaction-link-style-1"
+merval_acciones <- merval_html %>% rvest::html_nodes(css=".j-calltoaction-link-style-1") %>% rvest::html_text() %>% stringr::str_trim() %>% 
+  tibble::enframe(name=NULL,value="accion") %>% 
+  tidyr::separate(sep=" - ",col=accion,into=c("nombre","nombre_accion")) %>% 
+  mutate(nombre_accion_ba=paste0(nombre_accion,".BA"))
+
+#pacman::p_load("quanteda")
+pacman::p_load("quantmod")
+
+# http://www.quantmod.com/examples/intro/
+acciones_todas <- quantmod::getSymbols(merval_acciones$nombre_accion_ba[[1]],src="yahoo")
+acciones_todas
 ```
 
 ## 20200525: DIA 14: gráficos de rectángulos (treemap)
