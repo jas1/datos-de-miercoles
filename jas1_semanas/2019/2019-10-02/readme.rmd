@@ -245,6 +245,9 @@ ggraph_datos <- ggraph(tidy_graph_latinr,layout = 'kk') +
   # gganimate::exit_fade()
 
 ggraph_datos
+
+anim_save("latin_r.gif", animation = last_animation())
+
 ```
 
 ```{r echo=FALSE,message=FALSE,warning=FALSE}
